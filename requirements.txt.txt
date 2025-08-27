@@ -1,0 +1,15 @@
+fastapi[all]
+uvicorn
+websockets
+numpy
+opencv-python
+pillow
+onnx
+onnxruntime
+onnxruntime-gpu
+pyproj
+shapely
+scikit-image
+imgaug
+loguru
+typer
