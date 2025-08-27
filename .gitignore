@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.env.*
+.envrc
+.venv/
+env/
+
+# Node
+node_modules/
+dist/
+build/
+.npm/
+package-lock.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data/Artifacts
+out/
+models/*.pt
+models/*.engine
+models/*.onnx.zip
+
+# Logs
+*.log
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
