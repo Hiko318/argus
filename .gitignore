@@ -1,33 +1,30 @@
-# Python
-__pycache__/
-*.pyc
-.env
-.env.*
-.envrc
-.venv/
-env/
-
-# Node
-node_modules/
-dist/
-build/
-.npm/
-package-lock.json
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Data/Artifacts
-out/
-models/*.pt
-models/*.engine
-models/*.onnx.zip
-
-# Logs
+# Node / React
+src/ui/dashboard/node_modules/
+src/ui/dashboard/.vite/
 *.log
 
-# IDE/Editor
-.vscode/
-.idea/
-*.swp
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Builds / caches
+dist/
+build/
+.cache/
+
+# Media & model weights (keep these OUT of git)
+*.mp4
+*.mov
+*.mkv
+*.zip
+*.7z
+*.rar
+*.pt
+*.onnx
+*.ckpt
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
