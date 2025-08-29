@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Foresight Webapp</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #10b981;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #1e1e1e;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #10b981;
+      color: white;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #059669;
+    }
+    #log {
+      background: black;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      border-radius: 6px;
+    }
+    canvas {
+      border: 2px solid #333;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>FORESIGHT Control Panel</h1>
+
+  <div class="section">
+    <button onclick="handleStart()">Start Pipeline</button>
+    <button onclick="handleStop()">Stop Pipeline</button>
+  </div>
+
+  <div class="section">
+    <h2>Video Feed</h2>
+    <canvas id="videoCanvas" width="640" height="360"></canvas>
+  </div>
+
+  <div class="section">
+    <h2>Logs</h2>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let ws = null;
+    const logEl = document.getElementById("log");
+    const canvas = document.getElementById("videoCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logEl.innerHTML += `[${time}] ${msg}<br>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function initWebSocket() {
+      ws = new WebSocket("ws://127.0.0.1:8080/ws");
+      ws.onopen = () => log("Connected to backend WebSocket.");
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        log("Pipeline update: " + JSON.stringify(data));
+      };
+      ws.onclose = () => log("WebSocket disconnected.");
+    }
+
+    function handleStart() {
+      log("Starting pipeline...");
+      initWebSocket();
+    }
+
+    function handleStop() {
+      log("Stopping pipeline...");
+      if (ws) ws.close();
+    }
+
+    // Draw a placeholder on canvas
+    ctx.fillStyle = "#333";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#aaa";
+    ctx.fillText("Video feed will appear here", 200, 180);
+  </script>
+</body>
+</html>
