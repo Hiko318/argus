@@ -28,7 +28,8 @@ YAW_DEG = 0.0        # north
 
 geod = Geod(ellps="WGS84")
 
-app = FastAPI()
+app = FastAPI() 
+
 app.mount("/public", StaticFiles(directory="public"), name="public")
 
 latest_frame = None

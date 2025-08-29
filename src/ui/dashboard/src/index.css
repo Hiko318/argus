@@ -13,6 +13,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* Removed display: flex and place-items: center */
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Keep your link styles */
 a {
   font-weight: 500;
   color: #646cff;
@@ -22,19 +38,13 @@ a:hover {
   color: #535bf2;
 }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
+/* Keep your heading styles */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
 
+/* Keep your button styles */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
