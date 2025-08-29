@@ -50,6 +50,9 @@ async def demo_stream():
         await broadcast(payload)
         await asyncio.sleep(0.5)
 
-@app.on_event("startup")
-async def on_start():
-    asyncio.create_task(demo_stream())
+@app.middleware("lifespan")
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(demo_stream())
+    yield
+    task.cancel()
+    

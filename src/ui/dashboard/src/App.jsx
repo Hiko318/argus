@@ -17,9 +17,10 @@ function Dot({ ok, warn, size = 10 }) {
   );
 }
 
-function MiniBtn({ children }) {
+function MiniBtn({ children, onClick }) {
   return (
     <button
+      onClick={onClick}
       style={{
         padding: "4px 8px",
         borderRadius: 6,
@@ -153,6 +154,10 @@ export default function App() {
   const [mode, setMode] = useState("SAR"); // "SAR" | "Suspect-Lock"
   const [faceBlur, setFaceBlur] = useState(true);
 
+  // suspect uploads
+  const [suspectImgs, setSuspectImgs] = useState([]); // [{name, url}]
+  const filePickerRef = useRef(null);
+
   // dropdown
   const modeBtnRef = useRef(null);
   const [modeOpen, setModeOpen] = useState(false);
@@ -170,6 +175,13 @@ export default function App() {
     }
     return () => clearInterval(id);
   }, [running]);
+
+  // revoke object URLs when images change or component unmounts
+  useEffect(() => {
+    return () => {
+      suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
+    };
+  }, [suspectImgs]);
 
   function doConnect() {
     setConnected(true);
@@ -206,6 +218,22 @@ export default function App() {
     alignItems: "center",
     justifyContent: "space-between",
   });
+
+  // upload handlers
+  function openFilePicker() {
+    filePickerRef.current?.click();
+  }
+  function onFilesChosen(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const next = files.map((f) => ({ name: f.name, url: URL.createObjectURL(f) }));
+    setSuspectImgs((prev) => [...prev, ...next]);
+    e.target.value = ""; // allow re-adding same files
+  }
+  function clearUploads() {
+    suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
+    setSuspectImgs([]);
+  }
 
   return (
     <div
@@ -345,12 +373,75 @@ export default function App() {
               <MiniBtn>Handoff</MiniBtn>
             </div>
           </Collapsible>
+
           <Collapsible title="Suspect">
-            <div>Drop reference image(s) here</div>
+            {/* Upload button + hidden input */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <button onClick={openFilePicker} style={uploadBtnStyle}>Upload photo(s)</button>
+              <input
+                ref={filePickerRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={onFilesChosen}
+                style={{ display: "none" }}
+              />
+              <span style={{ color: "#9ca3af", fontSize: 12 }}>or drag & drop below</span>
+            </div>
+
+            <div
+              style={{
+                border: "1px dashed rgba(255,255,255,0.15)",
+                padding: 12,
+                borderRadius: 10,
+                textAlign: "center",
+                color: "#9ca3af",
+              }}
+            >
+              Drop reference image(s) here
+            </div>
+
+            {/* Thumbnails */}
+            {suspectImgs.length > 0 && (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
+                    gap: 8,
+                    marginTop: 10,
+                  }}
+                >
+                  {suspectImgs.map((img, i) => (
+                    <div
+                      key={`${img.name}-${i}`}
+                      style={{
+                        position: "relative",
+                        height: 72,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  <MiniBtn onClick={clearUploads}>Clear</MiniBtn>
+                </div>
+              </>
+            )}
           </Collapsible>
+
           <Collapsible title="Maps">
             <div style={{ height: 180, background: "#222" }}>🗺️ Map here</div>
           </Collapsible>
+
           <Collapsible title="Logs" defaultOpen={false}>
             <div style={{ maxHeight: 150, overflowY: "auto", fontSize: 12 }}>
               {logs.map((l, i) => (
@@ -405,5 +496,14 @@ const menuBtnStyle = {
   border: "1px solid rgba(255,255,255,0.08)",
   background: "rgba(255,255,255,0.06)",
   color: "#E5E7EB",
+  cursor: "pointer",
+};
+
+const uploadBtnStyle = {
+  padding: "6px 12px",
+  borderRadius: 8,
+  border: "1px solid rgba(16,185,129,0.35)",
+  background: "rgba(16,185,129,0.12)",
+  color: "#10b981",
   cursor: "pointer",
 };
