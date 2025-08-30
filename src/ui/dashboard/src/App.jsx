@@ -47,7 +47,9 @@ function Toggle({ label, checked, onChange }) {
         padding: "6px 10px",
         borderRadius: 8,
         background: checked ? "rgba(16,185,129,0.12)" : "#0B1220",
-        border: `1px solid ${checked ? "rgba(16,185,129,0.35)" : "rgba(255,255,255,0.08)"}`,
+        border: `1px solid ${
+          checked ? "rgba(16,185,129,0.35)" : "rgba(255,255,255,0.08)"
+        }`,
         color: checked ? "#10b981" : "#e5e7eb",
         userSelect: "none",
         cursor: "pointer",
@@ -101,7 +103,11 @@ function Dropdown({ open, anchorRef, onClose, width = 320, children }) {
   useEffect(() => {
     function onDocClick(e) {
       if (!open) return;
-      if (ref.current && !ref.current.contains(e.target) && !anchorRef?.current?.contains(e.target)) {
+      if (
+        ref.current &&
+        !ref.current.contains(e.target) &&
+        !anchorRef?.current?.contains(e.target)
+      ) {
         onClose?.();
       }
     }
@@ -117,7 +123,8 @@ function Dropdown({ open, anchorRef, onClose, width = 320, children }) {
   }, [open, onClose, anchorRef]);
 
   if (!open) return null;
-  const rect = anchorRef?.current?.getBoundingClientRect?.() ?? { left: 24, bottom: 56 };
+  const rect =
+    anchorRef?.current?.getBoundingClientRect?.() ?? { left: 24, bottom: 56 };
   return (
     <div
       ref={ref}
@@ -151,11 +158,11 @@ export default function App() {
   const [logs, setLogs] = useState(["UI loaded", "Click Connect then Start"]);
 
   // mode + face blur
-  const [mode, setMode] = useState("SAR"); // "SAR" | "Suspect-Lock"
+  const [mode, setMode] = useState("SAR");
   const [faceBlur, setFaceBlur] = useState(true);
 
   // suspect uploads
-  const [suspectImgs, setSuspectImgs] = useState([]); // [{name, url}]
+  const [suspectImgs, setSuspectImgs] = useState([]);
   const filePickerRef = useRef(null);
 
   // dropdown
@@ -166,8 +173,12 @@ export default function App() {
     let id;
     if (running) {
       id = setInterval(() => {
-        setFps((f) => Math.max(10, Math.min(60, Math.round(f + (Math.random() - 0.5) * 4))));
-        setLatency((l) => Math.max(90, Math.min(900, Math.round(l + (Math.random() - 0.5) * 20))));
+        setFps((f) =>
+          Math.max(10, Math.min(60, Math.round(f + (Math.random() - 0.5) * 4)))
+        );
+        setLatency((l) =>
+          Math.max(90, Math.min(900, Math.round(l + (Math.random() - 0.5) * 20)))
+        );
       }, 800);
     } else {
       setFps(0);
@@ -176,23 +187,16 @@ export default function App() {
     return () => clearInterval(id);
   }, [running]);
 
-  // revoke object URLs when images change or component unmounts
-  useEffect(() => {
-    return () => {
-      suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
-    };
-  }, [suspectImgs]);
-
   function doConnect() {
     setConnected(true);
-    setLogs((l) => [...l, "Connected (mock)"]);
+    setLogs((l) => [...l, "Connected"]);
   }
   function doStart() {
     if (!connected) return;
     setRunning(true);
     setFps(42);
     setLatency(180);
-    setLogs((l) => [...l, "Pipeline started (mock)"]);
+    setLogs((l) => [...l, "Pipeline started"]);
   }
   function doStop() {
     setRunning(false);
@@ -204,31 +208,19 @@ export default function App() {
     if (next === "SAR") setFaceBlur(true);
     setLogs((l) => [...l, `Mode set to ${next}`]);
   }
-  const modeItemStyle = (active) => ({
-    width: "100%",
-    textAlign: "left",
-    padding: "10px 10px",
-    color: active ? "#10b981" : "#E5E7EB",
-    background: active ? "rgba(16,185,129,0.08)" : "transparent",
-    border: "1px solid rgba(255,255,255,0.06)",
-    borderRadius: 8,
-    marginBottom: 8,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  });
 
-  // upload handlers
   function openFilePicker() {
     filePickerRef.current?.click();
   }
   function onFilesChosen(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const next = files.map((f) => ({ name: f.name, url: URL.createObjectURL(f) }));
+    const next = files.map((f) => ({
+      name: f.name,
+      url: URL.createObjectURL(f),
+    }));
     setSuspectImgs((prev) => [...prev, ...next]);
-    e.target.value = ""; // allow re-adding same files
+    e.target.value = "";
   }
   function clearUploads() {
     suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
@@ -270,18 +262,13 @@ export default function App() {
           Start
         </button>
         <button onClick={doStop} style={menuBtnStyle}>Stop</button>
-
-        {/* Mode dropdown trigger */}
         <button
           ref={modeBtnRef}
           onClick={() => setModeOpen((v) => !v)}
           style={{ ...menuBtnStyle, borderColor: "rgba(16,185,129,0.35)" }}
-          title="Switch SAR / Suspect-Lock"
         >
           Mode ▾
         </button>
-
-        {/* Inline stats */}
         <div style={{ marginLeft: "auto", display: "flex", gap: 20 }}>
           <span>FPS: <span style={{ color: fps < 18 ? "#ef4444" : "#10b981" }}>{fps}</span></span>
           <span>GPU: {gpu}%</span>
@@ -295,18 +282,16 @@ export default function App() {
         <div style={{ padding: 6 }}>
           <div style={{ fontWeight: 700, marginBottom: 8, color: "#10b981" }}>Modes</div>
           <button onClick={() => chooseMode("SAR")} style={modeItemStyle(mode === "SAR")}>
-            <span>SAR (Search &amp; Rescue)</span>
-            {mode === "SAR" && <Dot ok size={10} />}
+            SAR (Search & Rescue) {mode === "SAR" && <Dot ok size={10} />}
           </button>
           <button onClick={() => chooseMode("Suspect-Lock")} style={modeItemStyle(mode === "Suspect-Lock")}>
-            <span>Suspect-Lock</span>
-            {mode === "Suspect-Lock" && <Dot ok size={10} />}
+            Suspect-Lock {mode === "Suspect-Lock" && <Dot ok size={10} />}
           </button>
           <Toggle label="Face blur (bystanders)" checked={faceBlur} onChange={setFaceBlur} />
         </div>
       </Dropdown>
 
-      {/* Main content (fills screen) */}
+      {/* Main content */}
       <div
         style={{
           flex: 1,
@@ -327,6 +312,7 @@ export default function App() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
           {!running ? (
@@ -352,19 +338,16 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <div style={{ width: "100%", height: "100%", background: "#111" }} />
+            <img
+              src="http://127.0.0.1:8000/frame.jpg"
+              alt="Live Feed"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           )}
         </div>
 
-        {/* Right panels (scrollable) */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            overflowY: "auto",
-          }}
-        >
+        {/* Right panels */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
           <Collapsible title="Detections">
             <div>Person detected @14.59, 121.01</div>
             <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
@@ -375,7 +358,6 @@ export default function App() {
           </Collapsible>
 
           <Collapsible title="Suspect">
-            {/* Upload button + hidden input */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <button onClick={openFilePicker} style={uploadBtnStyle}>Upload photo(s)</button>
               <input
@@ -388,46 +370,15 @@ export default function App() {
               />
               <span style={{ color: "#9ca3af", fontSize: 12 }}>or drag & drop below</span>
             </div>
-
-            <div
-              style={{
-                border: "1px dashed rgba(255,255,255,0.15)",
-                padding: 12,
-                borderRadius: 10,
-                textAlign: "center",
-                color: "#9ca3af",
-              }}
-            >
+            <div style={{ border: "1px dashed rgba(255,255,255,0.15)", padding: 12, borderRadius: 10, textAlign: "center", color: "#9ca3af" }}>
               Drop reference image(s) here
             </div>
-
-            {/* Thumbnails */}
             {suspectImgs.length > 0 && (
               <>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
-                    gap: 8,
-                    marginTop: 10,
-                  }}
-                >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8, marginTop: 10 }}>
                   {suspectImgs.map((img, i) => (
-                    <div
-                      key={`${img.name}-${i}`}
-                      style={{
-                        position: "relative",
-                        height: 72,
-                        borderRadius: 8,
-                        overflow: "hidden",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }}
-                    >
-                      <img
-                        src={img.url}
-                        alt={img.name}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
+                    <div key={`${img.name}-${i}`} style={{ position: "relative", height: 72, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                   ))}
                 </div>
@@ -453,37 +404,11 @@ export default function App() {
       </div>
 
       {/* Bottom status bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          padding: "8px 18px",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          fontSize: 14,
-        }}
-      >
-        <div>
-          Status:{" "}
-          <span style={{ color: running ? "#10b981" : "#ef4444" }}>
-            {running ? "running" : "error"}
-          </span>
-        </div>
-        <div>
-          <Dot ok={connected} /> ADB
-          <Dot ok={connected} /> scrcpy
-          <Dot ok={running} /> FFmpeg
-        </div>
-        <div>
-          Latency:{" "}
-          <span style={{ color: running ? "#10b981" : "#ef4444" }}>
-            {latency}ms
-          </span>{" "}
-          | Disk: 73%
-        </div>
-        <div>
-          Model: <span style={{ color: "#10b981" }}>yolo_sar_n.onnx</span> |
-          Telemetry: OCR
-        </div>
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 18px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 14 }}>
+        <div>Status: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{running ? "running" : "error"}</span></div>
+        <div><Dot ok={connected} /> ADB <Dot ok={connected} /> scrcpy <Dot ok={running} /> FFmpeg</div>
+        <div>Latency: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{latency}ms</span> | Disk: 73%</div>
+        <div>Model: <span style={{ color: "#10b981" }}>yolo_sar_n.onnx</span> | Telemetry: OCR</div>
       </div>
     </div>
   );
@@ -507,3 +432,14 @@ const uploadBtnStyle = {
   color: "#10b981",
   cursor: "pointer",
 };
+
+const modeItemStyle = (active) => ({
+  width: "100%",
+  textAlign: "left",
+  padding: "10px",
+  borderRadius: 8,
+  border: "1px solid rgba(255,255,255,0.06)",
+  color: active ? "#10b981" : "#E5E7EB",
+  background: active ? "rgba(16,185,129,0.08)" : "transparent",
+  cursor: "pointer",
+});
