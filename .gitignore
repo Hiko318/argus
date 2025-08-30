@@ -28,3 +28,17 @@ build/
 # OS / editor junk
 .DS_Store
 Thumbs.db
+# ---- Foresight local ignores ----
+.venv/
+out/
+*.mkv
+*.mp4
+*.tmp
+*.log
+__pycache__/
+*.pyc
+node_modules/
+.env
+.DS_Store
+# keep placeholder files that are already tracked:
+!out/**/.gitkeep
