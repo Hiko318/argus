@@ -156,6 +156,27 @@
 
         .status-dot.warning { background: #f59e0b; }
         .status-dot.error { background: #ef4444; }
+        
+        .sar-mode-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(239, 68, 68, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+        
+        .control-btn.sar-btn {
+            background: #6366f1;
+        }
+        
+        .control-btn.sar-btn.active {
+            background: #ef4444;
+        }
 
         /* Main Layout */
         .main-container {
@@ -179,6 +200,16 @@
             height: 100%;
             object-fit: contain;
             background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+        
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-height: 100%;
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
         }
 
         .video-overlay {
@@ -669,6 +700,7 @@
         </button>
         <button class="control-btn" id="startBtn" onclick="handleStart()">Start</button>
         <button class="control-btn stop" id="stopBtn" onclick="handleStop()" style="display: none;">Stop</button>
+        <button class="control-btn sar-btn" id="sarModeBtn" onclick="toggleSARMode()">SAR Mode: OFF</button>
         
         <div class="mode-toggle">
             <button class="mode-btn active" onclick="setMode('sar')">SAR</button>
@@ -696,6 +728,7 @@
         <!-- Video Container -->
         <div class="video-container">
             <canvas id="videoCanvas"></canvas>
+            <img id="videoFeed" src="/video_feed" alt="Live Video Feed">
             <div class="video-overlay">
                 <div class="mini-hud">
                     <div>FPS: <span id="fps">0</span></div>
@@ -708,6 +741,7 @@
                     <button class="quick-action-btn" onclick="handoff()">🚁 Handoff</button>
                 </div>
                 <div id="banner"></div>
+                <div id="sarModeIndicator" class="sar-mode-indicator">SAR MODE</div>
             </div>
         </div>
 
@@ -846,46 +880,83 @@
             fps: 0,
             latency: 0,
             detections: [],
-            logs: []
+            logs: [],
+            sarMode: false
         };
+        
+        // SAR Mode Toggle Function
+        function toggleSARMode() {
+            fetch('/toggle_sar')
+                .then(response => response.json())
+                .then(data => {
+                    pipelineState.sarMode = data.sar_mode;
+                    updateSARModeUI();
+                    addLog('info', `SAR Mode ${pipelineState.sarMode ? 'Enabled' : 'Disabled'}`);
+                })
+                .catch(error => {
+                    console.error('Error toggling SAR mode:', error);
+                    addLog('error', 'Failed to toggle SAR mode');
+                });
+        }
+        
+        // Update SAR Mode UI
+        function updateSARModeUI() {
+            const sarBtn = document.getElementById('sarModeBtn');
+            const sarIndicator = document.getElementById('sarModeIndicator');
+            
+            if (pipelineState.sarMode) {
+                sarBtn.textContent = 'SAR Mode: ON';
+                sarBtn.classList.add('active');
+                sarIndicator.style.display = 'block';
+            } else {
+                sarBtn.textContent = 'SAR Mode: OFF';
+                sarBtn.classList.remove('active');
+                sarIndicator.style.display = 'none';
+            }
+        }
 
         // WebSocket connection for real-time updates
         let ws = null;
         
         // Initialize WebSocket connection
         function initWebSocket() {
-
-  try {
-    ws = new WebSocket(`ws://${location.host}/ws`);
-    ws.onopen = () => {
-      addLog('success','WebSocket connected to backend');
-      document.getElementById('telemetrySource').textContent = 'OCR/IMU';
-    };
-    ws.onmessage = (ev) => {
-      const msg = JSON.parse(ev.data);
-      if (msg.type === 'stats') {
-        document.getElementById('fps').textContent = msg.fps ?? 0;
-        document.getElementById('latency').textContent = msg.latency ?? 0;
-        const ge = (msg.geo_error ?? 0);
-        document.getElementById('geoError').textContent = `±${(typeof ge === 'number' && ge.toFixed) ? ge.toFixed(1) : ge}`;
-        if (Array.isArray(msg.detections)) {
-          msg.detections.forEach(d => {
-            addDetection({
-              time: new Date().toLocaleTimeString(),
-              type: d.name || 'object',
-              confidence: d.conf,
-              lat: d.lat, lon: d.lon, alt: d.alt,
-              error: d.error,
-              state: `id:${d.id} ${d.name}`
-            });
-          });
-        }
-      }
-    };
-    ws.onclose = () => addLog('warning','WebSocket disconnected');
-  } catch (e) { addLog('error', `WS error: ${e}`); }
-
-
+          try {
+            ws = new WebSocket(`ws://${location.host}/ws`);
+            ws.onopen = () => {
+              addLog('success','WebSocket connected to backend');
+              document.getElementById('telemetrySource').textContent = 'OCR/IMU';
+            };
+            ws.onmessage = (ev) => {
+              const msg = JSON.parse(ev.data);
+              if (msg.type === 'stats') {
+                document.getElementById('fps').textContent = msg.fps ?? 0;
+                document.getElementById('latency').textContent = msg.latency ?? 0;
+                const ge = (msg.geo_error ?? 0);
+                document.getElementById('geoError').textContent = `±${(typeof ge === 'number' && ge.toFixed) ? ge.toFixed(1) : ge}`;
+                
+                // Update SAR mode if it changed
+                if (pipelineState.sarMode !== msg.sar_mode) {
+                  pipelineState.sarMode = msg.sar_mode;
+                  updateSARModeUI();
+                }
+                if (Array.isArray(msg.detections)) {
+                  msg.detections.forEach(d => {
+                    addDetection({
+                      time: new Date().toLocaleTimeString(),
+                      type: d.name || 'object',
+                      confidence: d.conf,
+                      lat: d.lat, lon: d.lon, alt: d.alt,
+                      error: d.error,
+                      state: `id:${d.id} ${d.name}`
+                    });
+                  });
+                }
+              }
+            };
+            ws.onclose = () => addLog('warning','WebSocket disconnected');
+          } catch (e) { 
+            addLog('error', `WS error: ${e}`); 
+          }
         }
 
         // Handle Connect button

@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Foresight</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      display: flex;
+      align-items: center;
+      background-color: #fff;
+      padding: 10px 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    
+    .logo h1 {
+      font-size: 24px;
+      color: #009933;
+      margin: 0;
+    }
+    
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
+    }
+    
+    button {
+      background-color: #009933;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background-color: #007722;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      margin-left: 20px;
+    }
+    
+    .toggle-label {
+      margin-right: 10px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #009933;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    .screen-container {
+      background-color: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0;
+      position: relative;
+      min-height: 400px;
+    }
+    
+    .screen-placeholder {
+      color: #666;
+      text-align: center;
+      padding: 180px 0;
+    }
+    
+    .detection-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    .detection-box {
+      position: absolute;
+      border: 2px solid #ff0000;
+      background-color: rgba(255, 0, 0, 0.2);
+    }
+    
+    .log-container {
+      margin-top: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      height: 150px;
+      overflow-y: auto;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .log-entry {
+      margin-bottom: 5px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    
+    .log-info {
+      color: #333;
+    }
+    
+    .log-error {
+      color: #d9534f;
+    }
+    
+    .log-success {
+      color: #5cb85c;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="./assets/icon.svg" alt="Foresight Logo">
+      <h1>FORESIGHT</h1>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div class="controls">
+      <button id="startBtn">Start Capture</button>
+      <button id="stopBtn">Stop Capture</button>
+      
+      <div class="toggle-container">
+        <span class="toggle-label">SAR Mode:</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="sarToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="screen-container">
+      <div class="screen-placeholder" id="placeholder">
+        Connect your device and press "Start Capture"
+      </div>
+      <video id="phoneScreen" style="display: none; width: 100%; height: 100%; object-fit: contain;" autoplay muted></video>
+      <canvas id="videoCanvas" style="display: none; width: 100%; height: 100%;"></canvas>
+      <div class="detection-overlay" id="detectionOverlay"></div>
+    </div>
+    
+    <div class="log-container" id="logContainer">
+      <div class="log-entry log-info">Welcome to Foresight. Ready to connect to your device.</div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const sarToggle = document.getElementById('sarToggle');
+    const phoneScreen = document.getElementById('phoneScreen');
+    const videoCanvas = document.getElementById('videoCanvas');
+    const placeholder = document.getElementById('placeholder');
+    const detectionOverlay = document.getElementById('detectionOverlay');
+    const logContainer = document.getElementById('logContainer');
+    
+    // Video processing variables
+    let videoContext = null;
+    let isStreaming = false;
+    
+    // Event Listeners
+    startBtn.addEventListener('click', () => {
+      window.ipcRenderer.invoke('start-scrcpy')
+        .catch(err => addLogEntry(`Error: ${err.message}`, 'error'));
+    });
+    
+    stopBtn.addEventListener('click', () => {
+      window.ipcRenderer.invoke('stop-scrcpy')
+        .then(() => resetVideoDisplay())
+        .catch(err => addLogEntry(`Error: ${err.message}`, 'error'));
+    });
+    
+    sarToggle.addEventListener('change', () => {
+      window.ipcRenderer.invoke('toggle-sar-mode', sarToggle.checked)
+        .catch(err => addLogEntry(`Error: ${err.message}`, 'error'));
+    });
+    
+    // IPC Listeners
+    window.ipcRenderer.on('log', (logData) => {
+      addLogEntry(logData.message, logData.type);
+    });
+    
+    // Handle video frames from scrcpy
+    window.ipcRenderer.on('video-frame', (base64Data) => {
+      if (base64Data && !isStreaming) {
+        // Initialize video canvas for the first frame
+        initializeVideoDisplay();
+        isStreaming = true;
+      }
+      
+      if (base64Data && videoContext) {
+        // Create image from base64 data and draw to canvas
+        const img = new Image();
+        img.onload = () => {
+          videoCanvas.width = img.width;
+          videoCanvas.height = img.height;
+          videoContext.drawImage(img, 0, 0);
+        };
+        img.src = `data:image/jpeg;base64,${base64Data}`;
+      }
+    });
+    
+    // Initialize video display
+    function initializeVideoDisplay() {
+      videoCanvas.style.display = 'block';
+      placeholder.style.display = 'none';
+      videoContext = videoCanvas.getContext('2d');
+      addLogEntry('Phone screen connected and streaming', 'success');
+    }
+    
+    // Reset video display
+    function resetVideoDisplay() {
+      videoCanvas.style.display = 'none';
+      placeholder.style.display = 'block';
+      isStreaming = false;
+      videoContext = null;
+      addLogEntry('Phone screen disconnected', 'info');
+    }
+    
+    window.ipcRenderer.on('detection', (detections) => {
+      // Clear previous detections
+      detectionOverlay.innerHTML = '';
+      
+      // Add new detection boxes
+      detections.forEach(detection => {
+        const box = document.createElement('div');
+        box.className = 'detection-box';
+        box.style.left = `${detection.x}px`;
+        box.style.top = `${detection.y}px`;
+        box.style.width = `${detection.width}px`;
+        box.style.height = `${detection.height}px`;
+        
+        const label = document.createElement('div');
+        label.style.position = 'absolute';
+        label.style.top = '-20px';
+        label.style.left = '0';
+        label.style.background = 'red';
+        label.style.color = 'white';
+        label.style.padding = '2px 5px';
+        label.style.fontSize = '12px';
+        label.textContent = `${detection.class} (${Math.round(detection.confidence * 100)}%)`;
+        
+        box.appendChild(label);
+        detectionOverlay.appendChild(box);
+      });
+    });
+    
+    window.ipcRenderer.on('sar-mode-changed', (enabled) => {
+      sarToggle.checked = enabled;
+      addLogEntry(`SAR Mode ${enabled ? 'enabled' : 'disabled'}`, 'info');
+    });
+    
+    // Helper Functions
+    function addLogEntry(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
