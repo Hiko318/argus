@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
+/* ---------- settings (edit if you ever change backend) ---------- */
+const PREVIEW_URL = "http://127.0.0.1:8000/preview";
+const STREAM_URL = "http://127.0.0.1:8000/stream.mjpg";
+const REFRESH_MS = 250; // polling interval when using PREVIEW_URL
+const STALL_MS = 3000;  // show stalled if no new frames in this many ms
+
 /* ---------- atoms ---------- */
 function Dot({ ok, warn, size = 10 }) {
   const color = ok ? "#10b981" : warn ? "#f59e0b" : "#ef4444";
@@ -96,7 +102,6 @@ function Collapsible({ title, children, defaultOpen = true }) {
   );
 }
 
-/* ---------- dropdown ---------- */
 function Dropdown({ open, anchorRef, onClose, width = 320, children }) {
   const ref = useRef(null);
 
@@ -146,12 +151,62 @@ function Dropdown({ open, anchorRef, onClose, width = 320, children }) {
   );
 }
 
+/* ---------- helpers ---------- */
+function IdleBanner({ mode, faceBlur }) {
+  return (
+    <div style={{ textAlign: "center", color: "#10b981" }}>
+      <div
+        style={{
+          width: 140,
+          height: 140,
+          borderRadius: "50%",
+          background: "rgba(16,185,129,0.12)",
+          border: "2px solid rgba(16,185,129,0.4)",
+          display: "grid",
+          placeItems: "center",
+          margin: "0 auto 16px auto",
+        }}
+      >
+        <svg width="70" height="70" viewBox="0 0 24 24" fill="#10b981">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
+      <div style={{ fontSize: 28, letterSpacing: 1 }}>
+        NO SIGNAL… {mode === "SAR" ? "(SAR)" : "(Suspect-Lock)"}{" "}
+        {faceBlur ? "• BLUR" : ""}
+      </div>
+    </div>
+  );
+}
+
+function Overlay({ msg }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 12,
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "rgba(0,0,0,0.55)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        padding: "8px 12px",
+        borderRadius: 8,
+        color: "#E5E7EB",
+        fontSize: 13,
+        backdropFilter: "blur(2px)",
+      }}
+    >
+      {msg}
+    </div>
+  );
+}
+
 /* ---------- main app ---------- */
 export default function App() {
   const [connected, setConnected] = useState(false);
   const [running, setRunning] = useState(false);
+  const [method, setMethod] = useState("polling"); // 'polling' or 'mjpeg'
   const [fps, setFps] = useState(0);
-  const [gpu] = useState(64);
   const [lat] = useState(14.8);
   const [geoErr] = useState(7.5);
   const [latency, setLatency] = useState(467);
@@ -169,17 +224,25 @@ export default function App() {
   const modeBtnRef = useRef(null);
   const [modeOpen, setModeOpen] = useState(false);
 
+  // stream states
+  const [tick, setTick] = useState(0); // increments to bust cache for preview
+  const [lastFrameAt, setLastFrameAt] = useState(0);
+  const [errorsInARow, setErrorsInARow] = useState(0);
+
+  const stalled = running && Date.now() - lastFrameAt > STALL_MS;
+
+  // fps/latency mock just for top bar vibes
   useEffect(() => {
     let id;
     if (running) {
       id = setInterval(() => {
         setFps((f) =>
-          Math.max(10, Math.min(60, Math.round(f + (Math.random() - 0.5) * 4)))
+          Math.max(10, Math.min(60, Math.round(f + (Math.random() - 0.5) * 6)))
         );
         setLatency((l) =>
-          Math.max(90, Math.min(900, Math.round(l + (Math.random() - 0.5) * 20)))
+          Math.max(90, Math.min(900, Math.round(l + (Math.random() - 0.5) * 40)))
         );
-      }, 800);
+      }, 900);
     } else {
       setFps(0);
       setLatency(0);
@@ -187,26 +250,68 @@ export default function App() {
     return () => clearInterval(id);
   }, [running]);
 
+  // polling/tick effect (only when running, connected, method === 'polling', and tab visible)
+  useEffect(() => {
+    let id = null;
+    function startTicking() {
+      setTick((t) => t + 1); // immediate fetch
+      id = setInterval(() => setTick((t) => t + 1), REFRESH_MS);
+    }
+    function stopTicking() {
+      if (id) {
+        clearInterval(id);
+        id = null;
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        stopTicking();
+      } else {
+        // restart if conditions permit
+        if (connected && running && method === "polling") startTicking();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    if (connected && running && method === "polling" && !document.hidden) {
+      startTicking();
+    }
+
+    return () => {
+      stopTicking();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [connected, running, method]);
+
+  // handlers
+  function pushLog(msg) {
+    setLogs((l) => [...l.slice(-199), `${new Date().toLocaleTimeString()}  ${msg}`]);
+  }
+
   function doConnect() {
     setConnected(true);
-    setLogs((l) => [...l, "Connected"]);
+    pushLog("Connected (UI)");
   }
   function doStart() {
-    if (!connected) return;
+    if (!connected) {
+      pushLog("Start blocked: not connected");
+      return;
+    }
     setRunning(true);
-    setFps(42);
-    setLatency(180);
-    setLogs((l) => [...l, "Pipeline started"]);
+    setTick((t) => t + 1); // immediate
+    pushLog("Pipeline started (UI polling)");
   }
   function doStop() {
     setRunning(false);
-    setLogs((l) => [...l, "Pipeline stopped"]);
+    pushLog("Pipeline stopped (UI)");
   }
   function chooseMode(next) {
     setMode(next);
     setModeOpen(false);
     if (next === "SAR") setFaceBlur(true);
-    setLogs((l) => [...l, `Mode set to ${next}`]);
+    pushLog(`Mode set to ${next}`);
   }
 
   function openFilePicker() {
@@ -215,10 +320,7 @@ export default function App() {
   function onFilesChosen(e) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const next = files.map((f) => ({
-      name: f.name,
-      url: URL.createObjectURL(f),
-    }));
+    const next = files.map((f) => ({ name: f.name, url: URL.createObjectURL(f) }));
     setSuspectImgs((prev) => [...prev, ...next]);
     e.target.value = "";
   }
@@ -226,6 +328,19 @@ export default function App() {
     suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
     setSuspectImgs([]);
   }
+
+  // image load / error handlers
+  function handleImageLoad() {
+    setLastFrameAt(Date.now());
+    setErrorsInARow(0);
+  }
+  function handleImageError() {
+    setErrorsInARow((e) => e + 1);
+  }
+
+  // computed image src
+  const previewSrc = `${PREVIEW_URL}?t=${tick}`;
+  const streamSrc = STREAM_URL;
 
   return (
     <div
@@ -250,7 +365,11 @@ export default function App() {
         }}
       >
         <div style={{ fontWeight: 800, color: "#10b981" }}>Foresight 1.0</div>
-        <button onClick={doConnect} style={menuBtnStyle}>Connect</button>
+
+        <button onClick={doConnect} style={menuBtnStyle}>
+          Connect
+        </button>
+
         <button
           onClick={doStart}
           style={{
@@ -258,10 +377,15 @@ export default function App() {
             opacity: connected ? 1 : 0.5,
             cursor: connected ? "pointer" : "not-allowed",
           }}
+          title={!connected ? "Connect first" : "Start polling stream"}
         >
           Start
         </button>
-        <button onClick={doStop} style={menuBtnStyle}>Stop</button>
+
+        <button onClick={doStop} style={menuBtnStyle}>
+          Stop
+        </button>
+
         <button
           ref={modeBtnRef}
           onClick={() => setModeOpen((v) => !v)}
@@ -269,9 +393,22 @@ export default function App() {
         >
           Mode ▾
         </button>
+
+        <a
+          href={PREVIEW_URL}
+          target="_blank"
+          rel="noreferrer"
+          style={{ ...menuBtnStyle, textDecoration: "none" }}
+          title="Open raw /preview in new tab"
+        >
+          Open /preview
+        </a>
+
         <div style={{ marginLeft: "auto", display: "flex", gap: 20 }}>
-          <span>FPS: <span style={{ color: fps < 18 ? "#ef4444" : "#10b981" }}>{fps}</span></span>
-          <span>GPU: {gpu}%</span>
+          <span>
+            FPS:{" "}
+            <span style={{ color: fps < 18 ? "#ef4444" : "#10b981" }}>{fps}</span>
+          </span>
           <span>Lat: {lat.toFixed(1)}</span>
           <span>Err: ±{geoErr}m</span>
         </div>
@@ -282,12 +419,15 @@ export default function App() {
         <div style={{ padding: 6 }}>
           <div style={{ fontWeight: 700, marginBottom: 8, color: "#10b981" }}>Modes</div>
           <button onClick={() => chooseMode("SAR")} style={modeItemStyle(mode === "SAR")}>
-            SAR (Search & Rescue) {mode === "SAR" && <Dot ok size={10} />}
+            SAR (Search &amp; Rescue) {mode === "SAR" && <Dot ok size={10} />}
           </button>
           <button onClick={() => chooseMode("Suspect-Lock")} style={modeItemStyle(mode === "Suspect-Lock")}>
             Suspect-Lock {mode === "Suspect-Lock" && <Dot ok size={10} />}
           </button>
-          <Toggle label="Face blur (bystanders)" checked={faceBlur} onChange={setFaceBlur} />
+
+          <div style={{ marginTop: 8 }}>
+            <Toggle label="Face blur (bystanders)" checked={faceBlur} onChange={setFaceBlur} />
+          </div>
         </div>
       </Dropdown>
 
@@ -305,6 +445,7 @@ export default function App() {
         {/* Left video */}
         <div
           style={{
+            position: "relative",
             width: "100%",
             height: "100%",
             background: "#000",
@@ -316,33 +457,32 @@ export default function App() {
           }}
         >
           {!running ? (
-            <div style={{ textAlign: "center", color: "#10b981" }}>
-              <div
-                style={{
-                  width: 140,
-                  height: 140,
-                  borderRadius: "50%",
-                  background: "rgba(16,185,129,0.12)",
-                  border: "2px solid rgba(16,185,129,0.4)",
-                  display: "grid",
-                  placeItems: "center",
-                  margin: "0 auto 16px auto",
-                }}
-              >
-                <svg width="70" height="70" viewBox="0 0 24 24" fill="#10b981">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-              <div style={{ fontSize: 32, letterSpacing: 2 }}>
-                NO SIGNAL… {mode === "SAR" ? "(SAR)" : "(Suspect-Lock)"} {faceBlur ? "• BLUR" : ""}
-              </div>
-            </div>
+            <IdleBanner mode={mode} faceBlur={faceBlur} />
+          ) : method === "polling" ? (
+            <>
+              <img
+                src={previewSrc}
+                alt="Live Feed"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                draggable={false}
+              />
+              {stalled && <Overlay msg="Stalled — no new frames. Check backend/ffmpeg." />}
+              {errorsInARow > 0 && !stalled && <Overlay msg="Fetching… (retrying)" />}
+            </>
           ) : (
-            <img
-              src="http://127.0.0.1:8000/frame.jpg"
-              alt="Live Feed"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            />
+            <>
+              <img
+                src={streamSrc}
+                alt="Live MJPEG"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                draggable={false}
+              />
+              {stalled && <Overlay msg="Stream appears stalled — check backend." />}
+            </>
           )}
         </div>
 
@@ -370,9 +510,11 @@ export default function App() {
               />
               <span style={{ color: "#9ca3af", fontSize: 12 }}>or drag & drop below</span>
             </div>
+
             <div style={{ border: "1px dashed rgba(255,255,255,0.15)", padding: 12, borderRadius: 10, textAlign: "center", color: "#9ca3af" }}>
               Drop reference image(s) here
             </div>
+
             {suspectImgs.length > 0 && (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8, marginTop: 10 }}>
@@ -405,8 +547,8 @@ export default function App() {
 
       {/* Bottom status bar */}
       <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 18px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: 14 }}>
-        <div>Status: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{running ? "running" : "error"}</span></div>
-        <div><Dot ok={connected} /> ADB <Dot ok={connected} /> scrcpy <Dot ok={running} /> FFmpeg</div>
+        <div>Status: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{running ? "running" : "stopped"}</span>{stalled && <span style={{ color: "#f59e0b" }}> (stalled)</span>}</div>
+        <div><Dot ok={connected} /> ADB <Dot ok={connected} /> scrcpy <Dot ok={running && !stalled && errorsInARow===0} /> FFmpeg</div>
         <div>Latency: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{latency}ms</span> | Disk: 73%</div>
         <div>Model: <span style={{ color: "#10b981" }}>yolo_sar_n.onnx</span> | Telemetry: OCR</div>
       </div>
