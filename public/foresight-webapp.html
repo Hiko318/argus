@@ -950,31 +950,18 @@ function startCanvasPull() {
   pullTimer = setInterval(() => { img.src = `/frame.jpg?ts=${Date.now()}`; }, 100);
 }
 function handleStart() {
-
-  if (!pipelineState.connected) {
-    showBanner('Please connect to drone first', 'amber', 3000);
-    return;
-  }
-  pipelineState.running = true;
-  document.getElementById('startBtn').style.display = 'none';
-  document.getElementById('stopBtn').style.display = 'block';
-
-  addLog('info','Starting pipeline…');
-  initWebSocket();
-  startCanvasPull();
-  updateStatus('ffmpegStatus','active');
-  updateStatus('inferenceStatus','active');
-  showBanner('Pipeline active','green',2000);
-
-
+            if (!pipelineState.connected) {
+                showBanner('Please connect to drone first', 'amber', 3000);
+                return;
             }
             
             pipelineState.running = true;
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('stopBtn').style.display = 'block';
             
-            addLog('info', 'Starting FFmpeg capture...');
-            addLog('info', 'Initializing YOLO inference engine...');
+            addLog('info', 'Starting pipeline...');
+            initWebSocket();
+            startCanvasPull();
             
             setTimeout(() => {
                 addLog('success', 'Pipeline started');
@@ -986,18 +973,19 @@ function handleStart() {
         }
 
         function handleStop() {
-
-  pipelineState.running = false;
-  document.getElementById('startBtn').style.display = 'block';
-  document.getElementById('stopBtn').style.display = 'none';
-
-  addLog('info','Stopping pipeline…');
-  if (pullTimer) { clearInterval(pullTimer); pullTimer = null; }
-  updateStatus('ffmpegStatus','');
-  updateStatus('inferenceStatus','');
-  showBanner('Pipeline stopped','amber',2000);
-
-
+            pipelineState.running = false;
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            
+            addLog('info', 'Stopping pipeline...');
+            if (pullTimer) { 
+                clearInterval(pullTimer); 
+                pullTimer = null; 
+            }
+            stopVideoSimulation();
+            updateStatus('ffmpegStatus', '');
+            updateStatus('inferenceStatus', '');
+            showBanner('Pipeline stopped', 'amber', 2000);
         }
 
         // Mode switching

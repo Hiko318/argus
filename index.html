@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORESIGHT - SAR Drone Vision</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            height: 60px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+            position: relative;
+            z-index: 100;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            background: #2563eb;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn.connect {
+            background: #10b981;
+        }
+
+        .control-btn.connect:hover {
+            background: #059669;
+        }
+
+        .control-btn.stop {
+            background: #ef4444;
+        }
+
+        .control-btn.stop:hover {
+            background: #dc2626;
+        }
+
+        .mode-toggle {
+            display: flex;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: #888;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .mode-btn.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .face-blur-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+
+        .switch {
+            width: 44px;
+            height: 24px;
+            background: #333;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .switch.active {
+            background: #10b981;
+        }
+
+        .switch-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .switch.active .switch-thumb {
+            transform: translateX(20px);
+        }
+
+        .mission-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-dot.warning { background: #f59e0b; }
+        .status-dot.error { background: #ef4444; }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 120px);
+        }
+
+        /* Video Canvas Area */
+        .video-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #videoCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .mini-hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #0f9;
+            border: 1px solid rgba(0, 255, 150, 0.2);
+        }
+
+        .mini-hud div {
+            margin: 4px 0;
+        }
+
+        .quick-actions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            pointer-events: all;
+        }
+
+        .quick-action-btn {
+            padding: 10px 20px;
+            background: rgba(37, 99, 235, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(37, 99, 235, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            animation: slideIn 0.5s ease;
+            pointer-events: none;
+            display: none;
+        }
+
+        .banner.green {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+
+        .banner.amber {
+            background: rgba(245, 158, 11, 0.9);
+            color: white;
+        }
+
+        .banner.red {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        /* Right Panel */
+        .right-panel {
+            width: 320px;
+            background: #1a1a1a;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            display: flex;
+            background: #252525;
+            border-bottom: 1px solid #333;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 8px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: #ccc;
+        }
+
+        .tab.active {
+            color: white;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #2563eb;
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Detection Cards */
+        .detection-card {
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .detection-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+        }
+
+        .detection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .detection-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .detection-conf {
+            background: #2563eb;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .detection-thumbnail {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            object-fit: cover;
+        }
+
+        .detection-info {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .detection-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .detection-btn {
+            flex: 1;
+            padding: 6px 12px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .detection-btn:hover {
+            background: #444;
+            color: white;
+        }
+
+        .detection-btn.confirm {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .detection-btn.reject {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+
+        /* Map Container */
+        #mapContainer {
+            width: 100%;
+            height: 400px;
+            background: #111;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Dropzone */
+        .dropzone {
+            width: 100%;
+            height: 120px;
+            border: 2px dashed #444;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .dropzone:hover {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .dropzone.active {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* Log Container */
+        .log-container {
+            height: 400px;
+            background: #000;
+            border-radius: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+
+        .log-entry.success { color: #10b981; }
+        .log-entry.warning { color: #f59e0b; }
+        .log-entry.error { color: #ef4444; }
+        .log-entry.info { color: #3b82f6; }
+
+        /* Status Bar */
+        .status-bar {
+            height: 60px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 20px;
+            font-size: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #444;
+        }
+
+        .status-indicator.active {
+            background: #10b981;
+        }
+
+        .status-indicator.warning {
+            background: #f59e0b;
+        }
+
+        .status-indicator.error {
+            background: #ef4444;
+        }
+
+        /* Settings Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 12px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #ccc;
+        }
+
+        .settings-item {
+            margin-bottom: 16px;
+        }
+
+        .settings-label {
+            display: block;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: white;
+            font-size: 13px;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        /* Animations */
+        .detection-pulse {
+            animation: detectionPulse 1s ease;
+        }
+
+        @keyframes detectionPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <button class="control-btn connect" onclick="handleConnect()">
+            <span id="connectText">Connect</span>
+        </button>
+        <button class="control-btn" id="startBtn" onclick="handleStart()">Start</button>
+        <button class="control-btn stop" id="stopBtn" onclick="handleStop()" style="display: none;">Stop</button>
+        
+        <div class="mode-toggle">
+            <button class="mode-btn active" onclick="setMode('sar')">SAR</button>
+            <button class="mode-btn" onclick="setMode('suspect')">Suspect-Lock</button>
+        </div>
+        
+        <div class="face-blur-switch">
+            <div class="switch active" onclick="toggleFaceBlur()" id="faceBlurSwitch">
+                <div class="switch-thumb"></div>
+            </div>
+            <span style="font-size: 12px;">Blur bystanders (privacy)</span>
+        </div>
+        
+        <button class="control-btn" style="background: #444;" onclick="openSettings()">⚙</button>
+        
+        <div class="mission-info">
+            <span>Mission: SAR-2025-001</span>
+            <span>Telemetry: <span id="telemetrySource">N/A</span></span>
+            <span class="status-dot" id="statusDot"></span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Video Container -->
+        <div class="video-container">
+            <canvas id="videoCanvas"></canvas>
+            <div class="video-overlay">
+                <div class="mini-hud">
+                    <div>FPS: <span id="fps">0</span></div>
+                    <div>GPU: <span id="gpu">0</span>%</div>
+                    <div>Geo Error: <span id="geoError">±0.0</span>m</div>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" onclick="snapshot()">📸 Snapshot</button>
+                    <button class="quick-action-btn" onclick="markFound()">📍 Mark Found</button>
+                    <button class="quick-action-btn" onclick="handoff()">🚁 Handoff</button>
+                </div>
+                <div id="banner" class="banner"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('detections')">Detections</button>
+                <button class="tab" onclick="switchTab('map')">Map</button>
+                <button class="tab" onclick="switchTab('suspect')">Suspect-Lock</button>
+                <button class="tab" onclick="switchTab('logs')">Logs</button>
+            </div>
+            
+            <div class="tab-content" id="detectionsTab">
+                <!-- Detection cards will be added here dynamically -->
+            </div>
+            
+            <div class="tab-content" id="mapTab" style="display: none;">
+                <div id="mapContainer">Map visualization will appear here</div>
+            </div>
+            
+            <div class="tab-content" id="suspectTab" style="display: none;">
+                <div class="dropzone" onclick="uploadReference()">
+                    <span style="font-size: 24px;">📷</span>
+                    <span style="margin-top: 8px; font-size: 13px;">Drop reference image(s)</span>
+                </div>
+                <div class="settings-item">
+                    <label class="settings-label">Similarity Threshold</label>
+                    <input type="range" class="settings-input" min="0.5" max="1" step="0.01" value="0.75">
+                </div>
+                <button class="control-btn" style="width: 100%; margin-top: 16px;">Arm Lock</button>
+                <div style="margin-top: 20px; padding: 16px; background: #252525; border-radius: 8px; font-size: 12px; color: #888; line-height: 1.5;">
+                    ⚠️ Use only with proper legal authority and live operator oversight. Bystander privacy applies.
+                </div>
+            </div>
+            
+            <div class="tab-content" id="logsTab" style="display: none;">
+                <div class="log-container" id="logContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-indicator" id="adbStatus"></span>
+            <span>ADB</span>
+        </div>
+        <div class="status-item">
+            <span class="status-indicator" id="scrcpyStatus"></span>
+            <span>scrcpy</span>
+        </div>
+        <div class="status-item">
+            <span class="status-indicator" id="ffmpegStatus"></span>
+            <span>FFmpeg</span>
+        </div>
+        <div class="status-item">
+            <span class="status-indicator" id="inferenceStatus"></span>
+            <span>Inference</span>
+        </div>
+        <div class="status-item" style="margin-left: auto;">
+            <span>Latency: <span id="latency">0</span>ms</span>
+        </div>
+        <div class="status-item">
+            <span>Model: yolo_sar_n.onnx</span>
+        </div>
+        <div class="status-item">
+            <span>Disk: <span id="diskSpace">2.4</span>GB free</span>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="modal-close" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3 class="settings-title">Pipeline</h3>
+                    <div class="settings-item">
+                        <label class="settings-label">Window Title for scrcpy</label>
+                        <input type="text" class="settings-input" value="FORESIGHT_FEED" id="windowTitle">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">FFmpeg Capture FPS</label>
+                        <input type="number" class="settings-input" value="60" id="captureFps">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">Inference Backend</label>
+                        <select class="settings-input">
+                            <option>ONNX Runtime (CUDA)</option>
+                            <option>ONNX Runtime (DirectML)</option>
+                            <option>ONNX Runtime (CPU)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3 class="settings-title">Privacy & Modes</h3>
+                    <div class="settings-item">
+                        <label class="settings-label">
+                            <input type="checkbox" checked> Face-blur ON (SAR mode)
+                        </label>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">
+                            <input type="checkbox"> Allow auto-export (Suspect-Lock)
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h3 class="settings-title">Telemetry</h3>
+                    <div class="settings-item">
+                        <label class="settings-label">
+                            <input type="checkbox" checked> Enable OCR telemetry
+                        </label>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label">Manual Altitude (m)</label>
+                        <input type="number" class="settings-input" value="35">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pipeline state management
+        let pipelineState = {
+            connected: false,
+            running: false,
+            mode: 'sar',
+            faceBlur: true,
+            fps: 0,
+            latency: 0,
+            detections: [],
+            logs: []
+        };
+
+        // WebSocket connection for real-time updates
+        let ws = null;
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            try {
+                ws = new WebSocket(`ws://${location.host}/ws`);
+                ws.onopen = () => {
+                    addLog('success','WebSocket connected to backend');
+                    document.getElementById('telemetrySource').textContent = 'OCR/IMU';
+                };
+                ws.onmessage = (ev) => {
+                    const msg = JSON.parse(ev.data);
+                    if (msg.type === 'stats') {
+                        document.getElementById('fps').textContent = msg.fps ?? 0;
+                        document.getElementById('latency').textContent = msg.latency ?? 0;
+                        const ge = (msg.geo_error ?? 0);
+                        document.getElementById('geoError').textContent = `±${(typeof ge === 'number' && ge.toFixed) ? ge.toFixed(1) : ge}`;
+                        if (Array.isArray(msg.detections)) {
+                            msg.detections.forEach(d => {
+                                addDetection({
+                                    time: new Date().toLocaleTimeString(),
+                                    type: d.name || 'object',
+                                    confidence: d.conf,
+                                    lat: d.lat, lon: d.lon, alt: d.alt,
+                                    error: d.error,
+                                    state: `id:${d.id} ${d.name}`
+                                });
+                            });
+                        }
+                    }
+                };
+                ws.onclose = () => addLog('warning','WebSocket disconnected');
+            } catch (e) { 
+                addLog('error', `WS error: ${e}`); 
+            }
+        }
+
+        // Handle Connect button
+        async function handleConnect() {
+            const btn = document.querySelector('.control-btn.connect');
+            const text = document.getElementById('connectText');
+            
+            if (!pipelineState.connected) {
+                text.textContent = 'Connecting...';
+                addLog('info', 'Initiating ADB connection...');
+                
+                // Simulate connection process
+                setTimeout(() => {
+                    addLog('success', 'ADB device detected');
+                    addLog('info', 'Launching scrcpy with window title: FORESIGHT_FEED');
+                    
+                    setTimeout(() => {
+                        addLog('success', 'scrcpy started successfully');
+                        pipelineState.connected = true;
+                        text.textContent = 'Disconnect';
+                        updateStatus('adbStatus', 'active');
+                        updateStatus('scrcpyStatus', 'active');
+                        document.getElementById('telemetrySource').textContent = 'OCR';
+                        showBanner('Connected to drone feed', 'green', 2000);
+                    }, 1500);
+                }, 1000);
+            } else {
+                text.textContent = 'Disconnecting...';
+                addLog('info', 'Closing connections...');
+                
+                setTimeout(() => {
+                    pipelineState.connected = false;
+                    text.textContent = 'Connect';
+                    updateStatus('adbStatus', '');
+                    updateStatus('scrcpyStatus', '');
+                    document.getElementById('telemetrySource').textContent = 'N/A';
+                    addLog('info', 'Disconnected');
+                }, 500);
+            }
+        }
+
+        // Handle Start/Stop buttons
+        let pullTimer = null;
+        function startCanvasPull() {
+            const canvas = document.getElementById('videoCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                if (canvas.width !== canvas.offsetWidth) {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                }
+                const ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const dw = img.width * ratio, dh = img.height * ratio;
+                const dx = (canvas.width - dw)/2, dy = (canvas.height - dh)/2;
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.drawImage(img, dx, dy, dw, dh);
+            };
+            if (pullTimer) { clearInterval(pullTimer); }
+            pullTimer = setInterval(() => { img.src = `/frame.jpg?ts=${Date.now()}`; }, 100);
+        }
+
+        function handleStart() {
+            if (!pipelineState.connected) {
+                showBanner('Please connect to drone first', 'amber', 3000);
+                return;
+            }
+            
+            pipelineState.running = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            
+            addLog('info', 'Starting pipeline...');
+            initWebSocket();
+            startCanvasPull();
+            
+            setTimeout(() => {
+                addLog('success', 'Pipeline started');
+                updateStatus('ffmpegStatus', 'active');
+                updateStatus('inferenceStatus', 'active');
+                startVideoSimulation();
+                showBanner('Pipeline active', 'green', 2000);
+            }, 1000);
+        }
+
+        function handleStop() {
+            pipelineState.running = false;
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            
+            addLog('info', 'Stopping pipeline...');
+            if (pullTimer) { 
+                clearInterval(pullTimer); 
+                pullTimer = null; 
+            }
+            stopVideoSimulation();
+            updateStatus('ffmpegStatus', '');
+            updateStatus('inferenceStatus', '');
+            showBanner('Pipeline stopped', 'amber', 2000);
+        }
+
+        // Mode switching
+        function setMode(mode) {
+            pipelineState.mode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (mode === 'suspect') {
+                showBanner('Suspect-Lock mode activated', 'amber', 3000);
+                addLog('warning', 'Suspect-Lock mode: Ensure proper authorization');
+            } else {
+                addLog('info', 'SAR mode activated');
+            }
+        }
+
+        // Face blur toggle
+        function toggleFaceBlur() {
+            pipelineState.faceBlur = !pipelineState.faceBlur;
+            const switchEl = document.getElementById('faceBlurSwitch');
+            switchEl.classList.toggle('active');
+            addLog('info', `Face blur ${pipelineState.faceBlur ? 'enabled' : 'disabled'}`);
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+        }
+
+        // Quick actions
+        function snapshot() {
+            if (!pipelineState.running) {
+                showBanner('Pipeline not running', 'amber', 2000);
+                return;
+            }
+            
+            const timestamp = new Date().toISOString();
+            addLog('success', `Snapshot saved: ${timestamp}`);
+            showBanner('Snapshot captured', 'green', 2000);
+            
+            // Simulate saving snapshot
+            const canvas = document.getElementById('videoCanvas');
+            canvas.toBlob(blob => {
+                // In production, save this blob
+                console.log('Snapshot blob created');
+            });
+        }
+
+        function markFound() {
+            if (!pipelineState.running) {
+                showBanner('Pipeline not running', 'amber', 2000);
+                return;
+            }
+            
+            const timestamp = new Date().toLocaleTimeString();
+            addLog('success', `Location marked as FOUND at ${timestamp}`);
+            showBanner('Location marked', 'green', 2000);
+            
+            // Add marker to map
+            addDetection({
+                time: timestamp,
+                type: 'mark',
+                confidence: 1.0,
+                lat: 14.589123 + Math.random() * 0.001,
+                lon: 121.017345 + Math.random() * 0.001
+            });
+        }
+
+        function handoff() {
+            const lastDetection = pipelineState.detections[pipelineState.detections.length - 1];
+            if (!lastDetection) {
+                showBanner('No detection to handoff', 'amber', 2000);
+                return;
+            }
+            
+            showBanner('Handoff queued', 'green', 3000);
+            addLog('success', `Handoff package exported: /missions/2025-09-05/SAR2025-001/d${Date.now()}/`);
+            
+            // Simulate export
+            const exportData = {
+                detection: lastDetection,
+                timestamp: new Date().toISOString(),
+                mission: 'SAR-2025-001',
+                operator: 'Field Team Alpha'
+            };
+            
+            console.log('Export data:', exportData);
+        }
+
+        // Settings modal
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        // Upload reference for Suspect-Lock
+        function uploadReference() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    addLog('info', `Reference image loaded: ${file.name}`);
+                    document.querySelector('.dropzone').classList.add('active');
+                    document.querySelector('.dropzone').innerHTML = `
+                        <span style="font-size: 24px;">✓</span>
+                        <span style="margin-top: 8px; font-size: 13px;">${file.name}</span>
+                    `;
+                }
+            };
+            input.click();
+        }
+
+        // Helper functions
+        function updateStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = 'status-indicator';
+            if (status) element.classList.add(status);
+        }
+
+        function showBanner(text, type, duration) {
+            const banner = document.getElementById('banner');
+            banner.className = `banner ${type}`;
+            banner.textContent = text;
+            banner.style.display = 'block';
+            
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, duration);
+        }
+
+        function addLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                time: timestamp,
+                type: type,
+                message: message
+            };
+            
+            pipelineState.logs.push(logEntry);
+            
+            const logContainer = document.getElementById('logContainer');
+            const logElement = document.createElement('div');
+            logElement.className = `log-entry ${type}`;
+            logElement.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logElement);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function addDetection(detection) {
+            pipelineState.detections.push(detection);
+            
+            const detectionsTab = document.getElementById('detectionsTab');
+            const card = document.createElement('div');
+            card.className = 'detection-card detection-pulse';
+            
+            card.innerHTML = `
+                <div class="detection-header">
+                    <span class="detection-time">${detection.time}</span>
+                    <span class="detection-conf">${detection.type === 'person' ? `${(detection.confidence * 100).toFixed(0)}%` : 'MARK'}</span>
+                </div>
+                ${detection.type === 'person' ? `
+                <img class="detection-thumbnail" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23111' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23666' font-family='sans-serif'%3EDetection Thumbnail%3C/text%3E%3C/svg%3E" />
+                ` : ''}
+                <div class="detection-info">
+                    ${detection.lat ? `Lat ${detection.lat.toFixed(6)}, Lon ${detection.lon.toFixed(6)}<br>` : ''}
+                    ${detection.alt ? `Alt ${detection.alt}m ` : ''}
+                    ${detection.error ? `(±${detection.error}m)` : ''}
+                    ${detection.state ? `<br>State: ${detection.state}` : ''}
+                </div>
+                <div class="detection-actions">
+                    <button class="detection-btn confirm" onclick="confirmDetection(${pipelineState.detections.length - 1})">Confirm</button>
+                    <button class="detection-btn reject" onclick="rejectDetection(${pipelineState.detections.length - 1})">Reject</button>
+                    <button class="detection-btn" onclick="handoffDetection(${pipelineState.detections.length - 1})">Handoff</button>
+                </div>
+            `;
+            
+            detectionsTab.insertBefore(card, detectionsTab.firstChild);
+            
+            // Limit displayed detections
+            while (detectionsTab.children.length > 10) {
+                detectionsTab.removeChild(detectionsTab.lastChild);
+            }
+        }
+
+        function confirmDetection(index) {
+            pipelineState.detections[index].confirmed = true;
+            addLog('success', `Detection ${index} confirmed`);
+            event.target.style.background = '#059669';
+        }
+
+        function rejectDetection(index) {
+            pipelineState.detections[index].rejected = true;
+            addLog('info', `Detection ${index} rejected`);
+            event.target.style.background = '#dc2626';
+        }
+
+        function handoffDetection(index) {
+            handoff();
+        }
+
+        // Video simulation
+        let videoInterval = null;
+        let fpsInterval = null;
+        
+        function startVideoSimulation() {
+            const canvas = document.getElementById('videoCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            let frameCount = 0;
+            let lastTime = Date.now();
+            
+            // Simulate video feed with detection overlays
+            videoInterval = setInterval(() => {
+                // Clear canvas
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw simulated drone feed
+                const gradient = ctx.createRadialGradient(
+                    canvas.width/2, canvas.height/2, 0,
+                    canvas.width/2, canvas.height/2, canvas.width/2
+                );
+                gradient.addColorStop(0, 'rgba(0, 40, 20, 0.8)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid lines (simulating terrain)
+                ctx.strokeStyle = 'rgba(0, 255, 100, 0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < canvas.width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                }
+                for (let i = 0; i < canvas.height; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                    ctx.stroke();
+                }
+                
+                // Simulate detection boxes
+                if (Math.random() > 0.98 && pipelineState.running) {
+                    const x = Math.random() * (canvas.width - 100);
+                    const y = Math.random() * (canvas.height - 100);
+                    
+                    // Draw detection box
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x, y, 80, 100);
+                    
+                    // Draw label
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillRect(x, y - 20, 80, 20);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText('Person 0.92', x + 5, y - 5);
+                    
+                    // Add detection to list
+                    addDetection({
+                        time: new Date().toLocaleTimeString(),
+                        type: 'person',
+                        confidence: 0.92,
+                        lat: 14.589123 + Math.random() * 0.01,
+                        lon: 121.017345 + Math.random() * 0.01,
+                        alt: 35,
+                        error: (Math.random() * 10).toFixed(1),
+                        state: 'motion:low, pose:supine?'
+                    });
+                }
+                
+                // Draw crosshair
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(canvas.width/2 - 20, canvas.height/2);
+                ctx.lineTo(canvas.width/2 + 20, canvas.height/2);
+                ctx.moveTo(canvas.width/2, canvas.height/2 - 20);
+                ctx.lineTo(canvas.width/2, canvas.height/2 + 20);
+                ctx.stroke();
+                
+                frameCount++;
+            }, 1000/60); // 60 FPS
+            
+            // Update FPS counter
+            fpsInterval = setInterval(() => {
+                const now = Date.now();
+                const fps = Math.round(frameCount * 1000 / (now - lastTime));
+                document.getElementById('fps').textContent = fps;
+                document.getElementById('gpu').textContent = Math.round(20 + Math.random() * 30);
+                document.getElementById('geoError').textContent = `±${(Math.random() * 10).toFixed(1)}`;
+                document.getElementById('latency').textContent = Math.round(15 + Math.random() * 10);
+                frameCount = 0;
+                lastTime = now;
+            }, 1000);
+        }
+        
+        function stopVideoSimulation() {
+            if (videoInterval) clearInterval(videoInterval);
+            if (fpsInterval) clearInterval(fpsInterval);
+            
+            const canvas = document.getElementById('videoCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            document.getElementById('fps').textContent = '0';
+            document.getElementById('gpu').textContent = '0';
+        }
+
+        // Simulate pipeline activity
+        function simulatePipeline() {
+            // Simulate disk space updates
+            setInterval(() => {
+                const diskSpace = (Math.random() * 2 + 1).toFixed(1);
+                document.getElementById('diskSpace').textContent = diskSpace;
+            }, 5000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (pipelineState.detections.length > 0) {
+                    confirmDetection(pipelineState.detections.length - 1);
+                }
+            } else if (e.key === 'h' || e.key === 'H') {
+                handoff();
+            } else if (e.key === 's' || e.key === 'S') {
+                snapshot();
+            }
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('info', 'FORESIGHT initialized');
+            addLog('info', 'Ready for ADB connection');
+            simulatePipeline();
+        });
+    </script>
+</body>
+</html>
