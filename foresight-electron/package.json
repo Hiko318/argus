@@ -1,0 +1,32 @@
+{
+  "name": "foresight-electron",
+  "version": "1.0.0",
+  "description": "Foresight SAR Drone Vision with Scrcpy Integration",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["drone", "sar", "scrcpy", "yolo"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^37.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.9"
+  },
+  "build": {
+    "appId": "com.foresight.app",
+    "productName": "Foresight",
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  }
+}
