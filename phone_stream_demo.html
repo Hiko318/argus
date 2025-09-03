@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Stream Visual Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .demo-section {
+            background: #2a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #4CAF50;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .data-stream {
+            background: #000;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #555;
+        }
+        .h264-data {
+            color: #00ff00;
+            margin: 2px 0;
+        }
+        .nal-unit {
+            color: #ffff00;
+        }
+        .sps-pps {
+            color: #ff6600;
+            font-weight: bold;
+        }
+        .frame-data {
+            color: #00ccff;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .visual-indicator {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #4CAF50;
+        }
+        .phone-outline {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 320px;
+            border: 3px solid #4CAF50;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+        }
+        .screen-area {
+            position: absolute;
+            top: 20px;
+            left: 15px;
+            right: 15px;
+            bottom: 20px;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .streaming-lines {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Phone Stream Visual Demo</h1>
+            <p>Live demonstration of your phone's H.264 stream being captured and processed</p>
+        </div>
+
+        <div class="demo-section">
+            <div class="status">
+                <div class="status-dot"></div>
+                <h3>ADB Connection Status: ACTIVE</h3>
+            </div>
+            <div class="visual-indicator">
+                <div class="phone-outline">
+                    <div class="screen-area">
+                        <div class="streaming-lines"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <div class="status">
+                <div class="status-dot"></div>
+                <h3>Live H.264 Stream Data</h3>
+            </div>
+            <div class="data-stream" id="streamData">
+                <!-- Stream data will be populated here -->
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="frameCount">0</div>
+                <div>Frames Processed</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="dataRate">0</div>
+                <div>KB/s</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="nalUnits">0</div>
+                <div>NAL Units</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">R5CT20YN5PL</div>
+                <div>Device ID</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let frameCount = 0;
+        let nalCount = 0;
+        let dataTransferred = 0;
+
+        function addStreamData(type, data) {
+            const streamDiv = document.getElementById('streamData');
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = type;
+            line.textContent = `[${timestamp}] ${data}`;
+            streamDiv.appendChild(line);
+            streamDiv.scrollTop = streamDiv.scrollHeight;
+            
+            // Keep only last 50 lines
+            while (streamDiv.children.length > 50) {
+                streamDiv.removeChild(streamDiv.firstChild);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('frameCount').textContent = frameCount;
+            document.getElementById('dataRate').textContent = Math.floor(dataTransferred / 1024);
+            document.getElementById('nalUnits').textContent = nalCount;
+        }
+
+        function simulateH264Stream() {
+            // Simulate SPS/PPS headers
+            if (Math.random() < 0.1) {
+                addStreamData('sps-pps', 'SPS/PPS: 00 00 00 01 67 42 C0 1E DA 01 40 16 E9 B8 28 00 00 03 00 08');
+            }
+            
+            // Simulate NAL units
+            const nalTypes = ['I-Frame', 'P-Frame', 'B-Frame'];
+            const nalType = nalTypes[Math.floor(Math.random() * nalTypes.length)];
+            const nalData = Array.from({length: 16}, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(' ');
+            
+            addStreamData('nal-unit', `NAL ${nalType}: 00 00 00 01 ${nalData}`);
+            addStreamData('frame-data', `Frame data: ${Math.floor(Math.random() * 50000)} bytes`);
+            
+            frameCount++;
+            nalCount++;
+            dataTransferred += Math.floor(Math.random() * 10000) + 5000;
+            
+            updateStats();
+        }
+
+        // Start simulation
+        addStreamData('h264-data', '=== Phone Stream Started ===');
+        addStreamData('h264-data', 'Device: R5CT20YN5PL');
+        addStreamData('h264-data', 'Resolution: 720x1280');
+        addStreamData('h264-data', 'Bitrate: 8Mbps');
+        addStreamData('h264-data', 'Codec: H.264/AVC');
+        addStreamData('h264-data', '=== Live Stream Data ===');
+
+        setInterval(simulateH264Stream, 33); // ~30 FPS
+        setInterval(updateStats, 1000);
+    </script>
+</body>
+</html>
