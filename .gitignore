@@ -21,7 +21,7 @@ build/
 *.zip
 *.7z
 *.rar
-*.pt
+# *.pt - now tracked with Git LFS
 *.onnx
 *.ckpt
 
