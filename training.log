@@ -1,0 +1,152 @@
+2025-09-04 12:34:38,124 - INFO - Starting Aerial YOLO Training Pipeline
+2025-09-04 12:34:38,125 - INFO - Step 1: Downloading and preparing datasets
+2025-09-04 12:34:38,125 - INFO - Starting dataset download and preparation
+2025-09-04 12:34:38,126 - INFO - Downloading https://github.com/VisDrone/VisDrone-Dataset/releases/download/v1.0/VisDrone2019-DET-train.zip to data\training\visdrone\visdrone_train.zip
+2025-09-04 12:34:38,973 - ERROR - Failed to download https://github.com/VisDrone/VisDrone-Dataset/releases/download/v1.0/VisDrone2019-DET-train.zip: 404 Client Error: Not Found for url: https://github.com/VisDrone/VisDrone-Dataset/releases/download/v1.0/VisDrone2019-DET-train.zip
+2025-09-04 12:34:38,975 - ERROR - Dataset preparation failed
+2025-09-04 12:36:09,996 - INFO - Starting Aerial YOLO Training Pipeline
+2025-09-04 12:36:09,996 - INFO - Step 1: Creating dataset from available data
+2025-09-04 12:36:09,998 - INFO - Found 3 video files: ['stream.mp4', 'test_capture.mp4', 'test_video.mp4']
+2025-09-04 12:36:10,000 - INFO - Processing video: stream.mp4
+2025-09-04 12:36:37,862 - INFO - Extracted 100 frames from stream.mp4
+2025-09-04 12:36:37,862 - INFO - Processing video: test_capture.mp4
+2025-09-04 12:36:38,664 - INFO - Extracted 100 frames from test_capture.mp4
+2025-09-04 12:36:38,664 - INFO - Processing video: test_video.mp4
+2025-09-04 12:36:39,090 - INFO - Extracted 100 frames from test_video.mp4
+2025-09-04 12:36:39,090 - INFO - Total frames extracted: 300
+2025-09-04 12:36:39,092 - INFO - Created dataset configuration: data\training\dataset.yaml
+2025-09-04 12:36:39,093 - INFO - Step 2: Training the model
+2025-09-04 12:36:39,093 - INFO - Training YOLOv8n model (fast training for demonstration)
+2025-09-04 12:36:39,094 - INFO - Starting training with YOLOv8n
+2025-09-04 12:36:39,094 - INFO - CUDA not available, using CPU
+2025-09-04 12:36:39,094 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 12:36:39,095 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 12:36:39,096 - INFO - Training configuration:
+2025-09-04 12:36:39,096 - INFO -   Model: YOLOv8n
+2025-09-04 12:36:39,096 - INFO -   Epochs: 5
+2025-09-04 12:36:39,097 - INFO -   Batch size: 2
+2025-09-04 12:36:39,097 - INFO -   Learning rate: 0.001
+2025-09-04 12:36:39,097 - INFO -   Output directory: trained_models\aerial_yolov8n_20250904_123639
+2025-09-04 12:36:39,097 - ERROR - Training failed: YOLODetector.fine_tune_aerial() got an unexpected keyword argument 'learning_rate'
+2025-09-04 12:36:39,098 - ERROR - Model training failed
+2025-09-04 12:37:37,170 - INFO - Starting Aerial YOLO Training Pipeline
+2025-09-04 12:37:37,170 - INFO - Step 1: Creating dataset from available data
+2025-09-04 12:37:37,172 - INFO - Found 3 video files: ['stream.mp4', 'test_capture.mp4', 'test_video.mp4']
+2025-09-04 12:37:37,174 - INFO - Processing video: stream.mp4
+2025-09-04 12:38:07,494 - INFO - Extracted 100 frames from stream.mp4
+2025-09-04 12:38:07,495 - INFO - Processing video: test_capture.mp4
+2025-09-04 12:38:08,390 - INFO - Extracted 100 frames from test_capture.mp4
+2025-09-04 12:38:08,391 - INFO - Processing video: test_video.mp4
+2025-09-04 12:38:08,991 - INFO - Extracted 100 frames from test_video.mp4
+2025-09-04 12:38:08,992 - INFO - Total frames extracted: 300
+2025-09-04 12:38:08,994 - INFO - Created dataset configuration: data\training\dataset.yaml
+2025-09-04 12:38:08,995 - INFO - Step 2: Training the model
+2025-09-04 12:38:08,995 - INFO - Training YOLOv8n model (fast training for demonstration)
+2025-09-04 12:38:08,995 - INFO - Starting training with YOLOv8n
+2025-09-04 12:38:08,996 - INFO - CUDA not available, using CPU
+2025-09-04 12:38:08,996 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 12:38:08,997 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 12:38:08,998 - INFO - Training configuration:
+2025-09-04 12:38:08,998 - INFO -   Model: YOLOv8n
+2025-09-04 12:38:08,999 - INFO -   Epochs: 5
+2025-09-04 12:38:08,999 - INFO -   Batch size: 2
+2025-09-04 12:38:08,999 - INFO -   Learning rate: 0.001
+2025-09-04 12:38:09,000 - INFO -   Output directory: trained_models\aerial_yolov8n_20250904_123808
+2025-09-04 12:38:09,000 - ERROR - Model must be loaded before fine-tuning
+2025-09-04 12:38:09,000 - ERROR - Model training failed
+2025-09-04 12:38:53,321 - INFO - Starting Aerial YOLO Training Pipeline
+2025-09-04 12:38:53,322 - INFO - Step 1: Creating dataset from available data
+2025-09-04 12:38:53,324 - INFO - Found 3 video files: ['stream.mp4', 'test_capture.mp4', 'test_video.mp4']
+2025-09-04 12:38:53,325 - INFO - Processing video: stream.mp4
+2025-09-04 12:39:20,474 - INFO - Extracted 100 frames from stream.mp4
+2025-09-04 12:39:20,474 - INFO - Processing video: test_capture.mp4
+2025-09-04 12:39:21,125 - INFO - Extracted 100 frames from test_capture.mp4
+2025-09-04 12:39:21,126 - INFO - Processing video: test_video.mp4
+2025-09-04 12:39:23,590 - INFO - Extracted 100 frames from test_video.mp4
+2025-09-04 12:39:23,590 - INFO - Total frames extracted: 300
+2025-09-04 12:39:23,593 - INFO - Created dataset configuration: data\training\dataset.yaml
+2025-09-04 12:39:23,594 - INFO - Step 2: Training the model
+2025-09-04 12:39:23,595 - INFO - Training YOLOv8n model (fast training for demonstration)
+2025-09-04 12:39:23,595 - INFO - Starting training with YOLOv8n
+2025-09-04 12:39:23,596 - INFO - CUDA not available, using CPU
+2025-09-04 12:39:23,596 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 12:39:23,596 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 12:39:23,597 - INFO - Loading YOLOv8 model from models\yolov8n.pt
+2025-09-04 12:39:23,809 - INFO - Model loaded successfully. Classes: 80
+2025-09-04 12:39:23,811 - INFO - Training configuration:
+2025-09-04 12:39:23,811 - INFO -   Model: YOLOv8n
+2025-09-04 12:39:23,811 - INFO -   Epochs: 5
+2025-09-04 12:39:23,812 - INFO -   Batch size: 2
+2025-09-04 12:39:23,812 - INFO -   Learning rate: 0.001
+2025-09-04 12:39:23,812 - INFO -   Output directory: trained_models\aerial_yolov8n_20250904_123923
+2025-09-04 12:39:23,812 - INFO - Starting fine-tuning on aerial dataset: data\training\dataset.yaml
+2025-09-04 12:39:28,636 - INFO - generated new fontManager
+2025-09-04 12:50:38,181 - INFO - Fine-tuning completed. Best model loaded from aerial_training\human_detection_aerial\weights\best.pt
+2025-09-04 12:50:38,183 - INFO - Training completed successfully
+2025-09-04 12:50:38,194 - INFO - Training completed, model saved as: trained_models\aerial_yolov8n_20250904_123923\yolov8n_aerial_trained.pt
+2025-09-04 12:50:38,197 - INFO - Step 3: Validating the model
+2025-09-04 12:50:38,197 - INFO - Validating model: trained_models\aerial_yolov8n_20250904_123923\yolov8n_aerial_trained.pt
+2025-09-04 12:50:38,197 - INFO - CUDA not available, using CPU
+2025-09-04 12:50:38,198 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 12:50:38,198 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 12:50:38,206 - INFO - Loading YOLOv8 model from trained_models\aerial_yolov8n_20250904_123923\yolov8n_aerial_trained.pt
+2025-09-04 12:50:38,311 - INFO - Model loaded successfully. Classes: 80
+2025-09-04 12:50:38,496 - INFO - Model validation completed - detected 0 objects
+2025-09-04 12:50:38,497 - INFO - Validation result: {'status': 'success', 'model_path': 'trained_models\\aerial_yolov8n_20250904_123923\\yolov8n_aerial_trained.pt', 'validation_time': '2025-09-04T12:50:38.496846', 'test_detections': 0}
+2025-09-04 12:50:38,497 - INFO - Step 4: Optimizing for edge deployment
+2025-09-04 12:50:38,497 - WARNING - Edge optimization failed (this is optional): EdgeOptimizer.__init__() missing 1 required positional argument: 'config'
+2025-09-04 12:50:38,499 - INFO - Training summary saved to: training_summary.json
+2025-09-04 12:50:38,499 - INFO - Training pipeline completed successfully!
+2025-09-04 12:50:38,500 - INFO - Trained model available at: trained_models\aerial_yolov8n_20250904_123923\yolov8n_aerial_trained.pt
+2025-09-04 13:00:41,957 - INFO - Starting Aerial YOLO Training Pipeline
+2025-09-04 13:00:41,958 - INFO - Step 1: Creating dataset from available data
+2025-09-04 13:00:41,959 - INFO - Found 3 video files: ['stream.mp4', 'test_capture.mp4', 'test_video.mp4']
+2025-09-04 13:00:41,960 - INFO - Processing video: stream.mp4
+2025-09-04 13:01:06,894 - INFO - Extracted 100 frames from stream.mp4
+2025-09-04 13:01:06,894 - INFO - Processing video: test_capture.mp4
+2025-09-04 13:01:07,646 - INFO - Extracted 100 frames from test_capture.mp4
+2025-09-04 13:01:07,647 - INFO - Processing video: test_video.mp4
+2025-09-04 13:01:08,041 - INFO - Extracted 100 frames from test_video.mp4
+2025-09-04 13:01:08,041 - INFO - Total frames extracted: 300
+2025-09-04 13:01:08,043 - INFO - Created dataset configuration: data\training\dataset.yaml
+2025-09-04 13:01:08,044 - INFO - Step 2: Training the model
+2025-09-04 13:01:08,044 - INFO - Training YOLOv8n model (fast training for demonstration)
+2025-09-04 13:01:08,044 - INFO - Starting training with YOLOv8n
+2025-09-04 13:01:08,045 - INFO - CUDA not available, using CPU
+2025-09-04 13:01:08,045 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 13:01:08,045 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 13:01:08,045 - INFO - Loading YOLOv8 model from models\yolov8n.pt
+2025-09-04 13:01:08,237 - INFO - Model loaded successfully. Classes: 80
+2025-09-04 13:01:08,239 - INFO - Training configuration:
+2025-09-04 13:01:08,240 - INFO -   Model: YOLOv8n
+2025-09-04 13:01:08,240 - INFO -   Epochs: 5
+2025-09-04 13:01:08,240 - INFO -   Batch size: 2
+2025-09-04 13:01:08,241 - INFO -   Learning rate: 0.001
+2025-09-04 13:01:08,241 - INFO -   Output directory: trained_models\aerial_yolov8n_20250904_130108
+2025-09-04 13:01:08,241 - INFO - Starting fine-tuning on aerial dataset: data\training\dataset.yaml
+2025-09-04 13:15:14,275 - INFO - Fine-tuning completed. Best model loaded from aerial_training\human_detection_aerial\weights\best.pt
+2025-09-04 13:15:14,277 - INFO - Training completed successfully
+2025-09-04 13:15:14,288 - INFO - Training completed, model saved as: trained_models\aerial_yolov8n_20250904_130108\yolov8n_aerial_trained.pt
+2025-09-04 13:15:14,293 - INFO - Step 3: Validating the model
+2025-09-04 13:15:14,293 - INFO - Validating model: trained_models\aerial_yolov8n_20250904_130108\yolov8n_aerial_trained.pt
+2025-09-04 13:15:14,294 - INFO - CUDA not available, using CPU
+2025-09-04 13:15:14,294 - INFO - Initializing YOLODetector with device: cpu
+2025-09-04 13:15:14,294 - INFO - Human-only mode: True, Aerial optimized: False
+2025-09-04 13:15:14,303 - INFO - Loading YOLOv8 model from trained_models\aerial_yolov8n_20250904_130108\yolov8n_aerial_trained.pt
+2025-09-04 13:15:14,478 - INFO - Model loaded successfully. Classes: 80
+2025-09-04 13:15:14,832 - INFO - Model validation completed - detected 0 objects
+2025-09-04 13:15:14,834 - INFO - Validation result: {'status': 'success', 'model_path': 'trained_models\\aerial_yolov8n_20250904_130108\\yolov8n_aerial_trained.pt', 'validation_time': '2025-09-04T13:15:14.833639', 'test_detections': 0}
+2025-09-04 13:15:14,834 - INFO - Step 4: Optimizing for edge deployment
+2025-09-04 13:15:15,017 - INFO - EdgeOptimizer initialized for cpu
+2025-09-04 13:15:15,017 - INFO - Available optimizations: TensorRT=False, ONNX=True, Mobile=True
+2025-09-04 13:15:15,017 - INFO - Starting optimization for trained_models\aerial_yolov8n_20250904_130108\yolov8n_aerial_trained.pt
+2025-09-04 13:15:15,091 - INFO - Starting ONNX optimization
+2025-09-04 13:15:24,422 - WARNING - onnxoptimizer not available, skipping ONNX optimization
+2025-09-04 13:15:24,423 - INFO - ONNX optimization completed: optimized_models\yolov8n_aerial_trained_onnx.onnx
+2025-09-04 13:15:24,423 - INFO - Starting dynamic quantization
+2025-09-04 13:15:24,615 - INFO - Quantization completed: optimized_models\yolov8n_aerial_trained_quantized.pt
+2025-09-04 13:15:24,618 - INFO - Optimization report saved: optimized_models\optimization_report.json
+2025-09-04 13:15:24,621 - INFO - Optimized models: {'onnx': 'optimized_models\\yolov8n_aerial_trained_onnx.onnx', 'quantized': 'optimized_models\\yolov8n_aerial_trained_quantized.pt'}
+2025-09-04 13:15:24,624 - INFO - Training summary saved to: training_summary.json
+2025-09-04 13:15:24,624 - INFO - Training pipeline completed successfully!
+2025-09-04 13:15:24,625 - INFO - Trained model available at: trained_models\aerial_yolov8n_20250904_130108\yolov8n_aerial_trained.pt

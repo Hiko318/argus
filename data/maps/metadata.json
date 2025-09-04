@@ -1,0 +1,26 @@
+{
+  "downloaded_areas": [
+    {
+      "bbox": {
+        "north": 37.8,
+        "south": 37.7,
+        "east": -122.3,
+        "west": -122.5
+      },
+      "zoom_levels": [
+        10,
+        12,
+        14
+      ],
+      "providers": [
+        "openstreetmap"
+      ],
+      "total_tiles": 83,
+      "downloaded": 83,
+      "failed": 0,
+      "duration": 104.98715710639954,
+      "timestamp": 1756951179.2029831
+    }
+  ],
+  "last_updated": 1756951179.2040977
+}

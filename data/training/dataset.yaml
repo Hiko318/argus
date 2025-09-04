@@ -1,0 +1,6 @@
+names:
+- human
+nc: 1
+path: data\training\yolo_format
+train: train/images
+val: val/images

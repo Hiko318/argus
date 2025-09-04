@@ -1,0 +1,17 @@
+{
+  "training_completed": "2025-09-04T13:15:24.622511",
+  "model_size": "n",
+  "best_model_path": "trained_models\\aerial_yolov8n_20250904_130108\\yolov8n_aerial_trained.pt",
+  "optimized_models": {
+    "onnx": "optimized_models\\yolov8n_aerial_trained_onnx.onnx",
+    "quantized": "optimized_models\\yolov8n_aerial_trained_quantized.pt"
+  },
+  "validation_result": {
+    "status": "success",
+    "model_path": "trained_models\\aerial_yolov8n_20250904_130108\\yolov8n_aerial_trained.pt",
+    "validation_time": "2025-09-04T13:15:14.833639",
+    "test_detections": 0
+  },
+  "training_type": "demonstration",
+  "notes": "This is a demonstration training using synthetic/video data. For production use, train with real aerial datasets."
+}

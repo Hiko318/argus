@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foresight 1.0 - SAR Interface</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/sar_styles.css" />
+</head>
+<body>
+    <div class="sar-container">
+        <!-- Header Bar -->
+        <div class="header-bar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="logo-outer-circle"></div>
+                    <div class="logo-inner-circle"></div>
+                </div>
+                <span class="logo-text">Foresight 1.0</span>
+                <span class="logo-license">licensed</span>
+            </div>
+            <div class="header-controls">
+                <button class="header-btn" onclick="toggleConnection()">Connect</button>
+                <button class="header-btn" onclick="startSystem()">Start</button>
+                <button class="header-btn" onclick="stopSystem()">Stop</button>
+                <select class="header-dropdown" id="mode-dropdown" onchange="changeMode(this.value)">
+                    <option value="regular">Regular</option>
+                    <option value="sar">SAR (Search And Rescue)</option>
+                    <option value="suspect-lock">SL (Suspect-Lock)</option>
+                </select>
+                <button class="header-btn" onclick="exportMissionData()">Export</button>
+                <button class="header-btn" onclick="openSettings()">Settings</button>
+            </div>
+            <button class="close-btn" onclick="closeApplication()">&times;</button>
+        </div>
+
+        <!-- Video Section -->
+        <div class="video-section">
+            <div class="video-container">
+                <video id="video-feed" autoplay muted>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-overlay" id="video-overlay">
+                    <!-- Detection overlays will be added here -->
+                </div>
+                <div class="video-hud">
+                    <div class="hud-item">FPS: <span id="fps-display">12.2</span></div>
+                    <div class="hud-item">GPU: <span id="gpu-display">64%</span></div>
+                    <div class="hud-item">Lat: <span id="lat-display">14.8</span></div>
+                    <div class="hud-item">Err: <span id="error-display">±7.5m</span></div>
+                </div>
+                <div class="no-signal">
+                    <div class="play-button"></div>
+                    <div class="signal-text">NO SIGNAL...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="panel-tabs">
+                <button class="tab active" onclick="switchTab('detections')">Detections +</button>
+                <button class="tab" onclick="switchTab('suspect')">Suspect +</button>
+                <button class="tab" onclick="switchTab('maps')">Maps -</button>
+                <button class="tab" onclick="switchTab('logs')">Logs +</button>
+            </div>
+            <div class="tab-content" id="tab-content">
+                <!-- Tab content will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Suspect-Lock Mode Panel -->
+        <div class="suspect-lock-panel" id="suspect-lock-panel" style="display: none;">
+            <div class="panel-header">
+                <h3>Suspect-Lock Mode</h3>
+                <button class="close-panel-btn" onclick="closeSuspectPanel()">&times;</button>
+            </div>
+            <div class="panel-content">
+                <div class="target-upload-section">
+                    <h4>Target Image</h4>
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-placeholder" id="upload-placeholder">
+                            <i class="fas fa-camera"></i>
+                            <p>Upload target image</p>
+                            <small>Click to select from gallery or take photo</small>
+                        </div>
+                        <img class="target-preview" id="target-preview" style="display: none;" />
+                        <input type="file" id="target-image-input" accept="image/*" style="display: none;" />
+                    </div>
+                    <div class="upload-controls">
+                        <button class="btn-secondary" onclick="selectTargetImage()">Select Image</button>
+                        <button class="btn-secondary" onclick="captureTargetImage()">Take Photo</button>
+                        <button class="btn-primary" id="process-target-btn" onclick="processTargetImage()" disabled>Process Target</button>
+                    </div>
+                </div>
+                <div class="target-info-section" id="target-info-section" style="display: none;">
+                    <h4>Target Information</h4>
+                    <div class="target-details">
+                        <div class="detail-item">
+                            <span class="label">Target ID:</span>
+                            <span class="value" id="target-id">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Detection Method:</span>
+                            <span class="value" id="detection-method">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Confidence:</span>
+                            <span class="value" id="target-confidence">-</span>
+                        </div>
+                    </div>
+                    <div class="target-controls">
+                        <button class="btn-danger" onclick="clearTarget()">Clear Target</button>
+                        <button class="btn-primary" onclick="startTracking()">Start Tracking</button>
+                    </div>
+                </div>
+                <div class="tracking-status" id="tracking-status" style="display: none;">
+                    <h4>Tracking Status</h4>
+                    <div class="status-indicator tracking-active">
+                        <i class="fas fa-crosshairs"></i>
+                        <span>Target Locked</span>
+                    </div>
+                    <div class="tracking-info">
+                        <div class="info-item">
+                            <span class="label">Last Seen:</span>
+                            <span class="value" id="last-seen-time">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Location:</span>
+                            <span class="value" id="target-location">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Match Score:</span>
+                            <span class="value" id="match-score">-</span>
+                        </div>
+                    </div>
+                    <button class="btn-warning" onclick="stopTracking()">Stop Tracking</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-item">
+                    Status: <span class="status-indicator error"></span> error (i)
+                </div>
+            </div>
+            <div class="status-right">
+                <div class="status-item">Video: <span class="status-indicator" id="video-status"></span></div>
+                <div class="status-item">Geolocation: <span class="status-indicator" id="geolocation-status"></span></div>
+                <div class="status-item">ADB: <span class="status-indicator"></span> srcpy: <span class="status-indicator"></span></div>
+                <div class="status-item">FFmpeg: <span class="status-indicator"></span> FFmpeg: <span class="status-indicator error"></span></div>
+                <div class="status-item">Latency: 467ms</div>
+                <div class="status-item">Disk: 73%</div>
+                <div class="status-item">Model: yolo_sar_n.onnx</div>
+                <div class="status-item">Telemetry: OCR (conf 0.84)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/sar_interface.js"></script>
+</body>
+</html>

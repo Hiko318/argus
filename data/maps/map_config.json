@@ -1,0 +1,20 @@
+{
+  "default_area": {
+    "north": 37.8,
+    "south": 37.7,
+    "east": -122.3,
+    "west": -122.5
+  },
+  "zoom_levels": [
+    10,
+    12,
+    14,
+    16
+  ],
+  "providers": [
+    "openstreetmap",
+    "opentopomap"
+  ],
+  "cache_dir": "C:\\Users\\Admin\\Desktop\\foresight\\data\\maps",
+  "max_cache_size_mb": 1000
+}
