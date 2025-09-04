@@ -1,31 +1,42 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const fetch = require('node-fetch');
 
 // Global references
 let mainWindow;
-let scrcpyProcess = null;
-let sarModeEnabled = false;
+let sarBackendProcess = null;
+let sarServiceUrl = 'http://localhost:8004';
+let isConnected = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1400,
+    height: 900,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false // Allow loading local resources
     },
-    icon: path.join(__dirname, 'assets', 'icon.svg')
+    icon: path.join(__dirname, 'assets', 'icon.svg'),
+    title: 'Foresight SAR System'
   });
 
-  // Load the HTML file
-  mainWindow.loadFile('index.html');
+  // Start SAR backend service
+  startSARBackend();
+  
+  // Wait for backend to start, then load the interface
+  setTimeout(() => {
+    mainWindow.loadURL(sarServiceUrl);
+  }, 3000);
   
   // Log when page fails to load
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Failed to load:', errorDescription);
+    console.error('Failed to load SAR interface:', errorDescription);
+    // Fallback to local HTML if backend is not available
+    mainWindow.loadFile('sar_interface.html');
   });
   
   // Open DevTools in development
@@ -33,168 +44,127 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
-    stopScrcpy();
+    stopSARBackend();
   });
 }
 
-// Start scrcpy with embedded display using V4L2 loopback (simplified approach)
-function startScrcpy() {
-  const scrcpyPath = path.join(__dirname, '..', 'third_party', 'scrcpy', 'scrcpy.exe');
+// Start SAR backend service
+function startSARBackend() {
+  const projectRoot = path.join(__dirname, '..');
+  const pythonScript = path.join(projectRoot, 'src', 'backend', 'sar_service.py');
   
-  if (!fs.existsSync(scrcpyPath)) {
-    console.error('scrcpy.exe not found at:', scrcpyPath);
-    mainWindow.webContents.send('log', { type: 'error', message: 'scrcpy.exe not found' });
+  if (!fs.existsSync(pythonScript)) {
+    console.error('SAR service script not found at:', pythonScript);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('log', { type: 'error', message: 'SAR service script not found' });
+    }
     return;
   }
 
-  // Create a temporary directory for frame captures
-  const tempDir = path.join(__dirname, 'temp_frames');
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-
-  // Use scrcpy with window embedding approach
-  const args = [
-    '--no-control',           // Disable control to just display the screen
-    '--max-size=720',         // Limit resolution for better performance
-    '--bit-rate=2M',          // Set bitrate
-    '--window-title=FORESIGHT_EMBED',  // Specific window title for identification
-    '--window-x=0',           // Position off-screen
-    '--window-y=-2000',       // Position off-screen
-    '--window-width=720',     // Set window size
-    '--window-height=1280'
-  ];
-
-  scrcpyProcess = spawn(scrcpyPath, args);
+  // Start the SAR backend service
+  const args = ['-m', 'src.backend.sar_service', '--port', '8004'];
   
-  // Start screen capture from the scrcpy window
-  setTimeout(() => {
-    startScreenCapture();
-  }, 3000); // Wait for scrcpy to initialize
+  sarBackendProcess = spawn('python', args, {
+    cwd: projectRoot,
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
   
-  scrcpyProcess.stderr.on('data', (data) => {
+  sarBackendProcess.stdout.on('data', (data) => {
     const message = data.toString();
-    console.error(`scrcpy stderr: ${message}`);
-    mainWindow.webContents.send('log', { type: 'info', message: `scrcpy: ${message.trim()}` });
-  });
-  
-  scrcpyProcess.on('close', (code) => {
-    console.log(`scrcpy process exited with code ${code}`);
-    mainWindow.webContents.send('log', { type: 'info', message: `scrcpy process exited with code ${code}` });
-    scrcpyProcess = null;
-    stopScreenCapture();
-  });
-
-  scrcpyProcess.on('error', (error) => {
-    console.error('scrcpy error:', error);
-    mainWindow.webContents.send('log', { type: 'error', message: `scrcpy error: ${error.message}` });
-  });
-}
-
-// Global variables for screen capture
-let captureInterval = null;
-let captureProcess = null;
-
-// Start capturing screenshots from scrcpy window
-function startScreenCapture() {
-  // Use a simpler approach: capture desktop screenshots and crop the scrcpy window
-  // This is a fallback method - in production you'd want a more sophisticated approach
-  
-  captureInterval = setInterval(() => {
-    // Simulate phone screen data for now
-    // In a real implementation, you would capture the actual scrcpy window
-    simulatePhoneScreen();
-  }, 100); // Capture at ~10 FPS
-}
-
-// Stop screen capture
-function stopScreenCapture() {
-  if (captureInterval) {
-    clearInterval(captureInterval);
-    captureInterval = null;
-  }
-  if (captureProcess) {
-    captureProcess.kill();
-    captureProcess = null;
-  }
-}
-
-// Simulate phone screen for demonstration
-function simulatePhoneScreen() {
-  // Create a simple canvas with phone-like content
-  const canvas = require('canvas');
-  const { createCanvas } = canvas;
-  
-  try {
-    const canvasElement = createCanvas(360, 640);
-    const ctx = canvasElement.getContext('2d');
-    
-    // Create a gradient background
-    const gradient = ctx.createLinearGradient(0, 0, 0, 640);
-    gradient.addColorStop(0, '#1e3c72');
-    gradient.addColorStop(1, '#2a5298');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 360, 640);
-    
-    // Add some UI elements to simulate a phone screen
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '20px Arial';
-    ctx.fillText('Phone Screen Simulation', 50, 50);
-    
-    ctx.fillStyle = '#00ff00';
-    ctx.fillRect(50, 100, 260, 40);
-    ctx.fillStyle = '#000000';
-    ctx.fillText('Connected to Foresight', 60, 125);
-    
-    // Add timestamp
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '14px Arial';
-    ctx.fillText(`Time: ${new Date().toLocaleTimeString()}`, 50, 200);
-    
-    // Convert to base64 and send to renderer
-    const buffer = canvasElement.toBuffer('image/jpeg', { quality: 0.8 });
-    const base64Data = buffer.toString('base64');
-    
+    console.log(`SAR Backend: ${message}`);
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('video-frame', base64Data);
+      mainWindow.webContents.send('log', { type: 'info', message: `SAR: ${message.trim()}` });
     }
+    
+    // Check if service is ready
+    if (message.includes('Uvicorn running on')) {
+      isConnected = true;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('backend-ready', true);
+      }
+    }
+  });
+  
+  sarBackendProcess.stderr.on('data', (data) => {
+    const message = data.toString();
+    console.error(`SAR Backend stderr: ${message}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('log', { type: 'error', message: `SAR Error: ${message.trim()}` });
+    }
+  });
+  
+  sarBackendProcess.on('close', (code) => {
+    console.log(`SAR backend process exited with code ${code}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('log', { type: 'info', message: `SAR backend exited with code ${code}` });
+    }
+    sarBackendProcess = null;
+    isConnected = false;
+  });
+
+  sarBackendProcess.on('error', (error) => {
+    console.error('SAR backend error:', error);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('log', { type: 'error', message: `SAR backend error: ${error.message}` });
+    }
+  });
+}
+
+// Stop SAR backend service
+function stopSARBackend() {
+  if (sarBackendProcess) {
+    sarBackendProcess.kill();
+    sarBackendProcess = null;
+    isConnected = false;
+  }
+}
+
+// Check if SAR backend is running
+async function checkSARBackend() {
+  try {
+    const response = await fetch(`${sarServiceUrl}/api/status`);
+    return response.ok;
   } catch (error) {
-    console.error('Error generating simulated screen:', error);
+    return false;
   }
 }
 
-function stopScrcpy() {
-  if (scrcpyProcess) {
-    scrcpyProcess.kill();
-    scrcpyProcess = null;
-  }
-}
-
-// Toggle SAR mode
-function toggleSarMode() {
-  sarModeEnabled = !sarModeEnabled;
-  mainWindow.webContents.send('sar-mode-changed', sarModeEnabled);
-  return sarModeEnabled;
+// Restart SAR backend
+function restartSARBackend() {
+  stopSARBackend();
+  setTimeout(() => {
+    startSARBackend();
+  }, 1000);
 }
 
 // IPC handlers
 function setupIPC() {
-  ipcMain.handle('start-scrcpy', async () => {
-    startScrcpy();
+  ipcMain.handle('start-sar-backend', async () => {
+    startSARBackend();
     return true;
   });
   
-  ipcMain.handle('stop-scrcpy', async () => {
-    stopScrcpy();
+  ipcMain.handle('stop-sar-backend', async () => {
+    stopSARBackend();
     return true;
   });
   
-  ipcMain.handle('toggle-sar-mode', async () => {
-    return toggleSarMode();
+  ipcMain.handle('restart-sar-backend', async () => {
+    restartSARBackend();
+    return true;
   });
   
-  ipcMain.handle('get-sar-mode', async () => {
-    return sarModeEnabled;
+  ipcMain.handle('check-sar-backend', async () => {
+    return await checkSARBackend();
+  });
+  
+  ipcMain.handle('get-connection-status', async () => {
+    return isConnected;
+  });
+  
+  ipcMain.handle('open-external', async (event, url) => {
+    shell.openExternal(url);
+    return true;
   });
 }
 
@@ -217,5 +187,9 @@ app.on('activate', () => {
 });
 
 app.on('quit', () => {
-  stopScrcpy();
+  stopSARBackend();
+});
+
+app.on('before-quit', () => {
+  stopSARBackend();
 });

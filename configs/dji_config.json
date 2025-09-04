@@ -1,0 +1,12 @@
+{
+  "tello": {
+    "enabled": true,
+    "ip": "192.168.10.1",
+    "port": 8889,
+    "video_port": 11111
+  },
+  "payload_sdk": {
+    "enabled": false,
+    "note": "Requires DJI Payload SDK installation"
+  }
+}
