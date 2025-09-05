@@ -1,0 +1,182 @@
+# Environment and Secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+*.p12
+*.pfx
+config/secrets.yaml
+config/keys/
+
+# Large Binary Files
+*.pt
+*.pth
+*.onnx
+*.trt
+*.engine
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.zip
+*.tar.gz
+*.7z
+*.rar
+
+# Model Files (use Git LFS instead)
+models/*.pt
+models/*.onnx
+trained_models/
+optimized_models/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Electron
+dist/
+out/
+build/
+*.dmg
+*.exe
+*.deb
+*.rpm
+*.snap
+*.appx
+
+# Logs and Temporary Files
+*.log
+logs/
+out/logs/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Evidence and Data
+out/evidence/
+data/samples/
+data/training/images/
+data/training/labels/
+data/maps/tiles/
+data/maps/dem/
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Third Party Tools
+third_party/
+tools/adb/
+tools/scrcpy/
+
+# Backup Files
+*.bak
+*.backup
+*.old
+
+# Large Test Files
+test_*.mp4
+stream*.mp4
+sample_*.mp4
+
+# Compiled Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Documentation Build
+docs/_build/
+docs/site/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# PyTorch Lightning
+lightning_logs/
+
+# MLflow
+mlruns/
+
+# Weights & Biases
+wandb/
+
+# TensorBoard
+runs/
+
+# CUDA
+*.ptx
+*.cubin
+
+# Configuration overrides
+config/local.yaml
+config/production.yaml
+configs/local/
