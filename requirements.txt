@@ -1,75 +1,64 @@
+﻿
+# Additional computer vision and plotting
 # Core AI/ML Dependencies (frozen versions for stability)
-torch==2.8.0
-torchvision==0.23.0
-opencv-python==4.12.0.88
-ultralytics==8.3.192
-numpy==2.2.6
-scipy==1.16.1
-pillow==11.3.0
-filterpy==1.4.5
-
-# Face Recognition and Person Re-ID
-facenet-pytorch==2.5.3
-torchmetrics==1.2.1
-insightface==0.7.3
-scikit-learn==1.3.2
-scikit-image==0.25.2
-
-# Web Framework
-fastapi==0.116.1
-uvicorn==0.35.0
-websockets==15.0.1
-starlette==0.47.3
-
-# Drone Integration
-djitellopy==2.5.0
-av==11.0.0
-
-# Mapping and Geospatial
-folium==0.15.1
-geopy==2.4.1
-geographiclib==2.0
-rasterio==1.3.9
-
-# Utilities
-requests==2.32.5
-pydantic==2.11.7
-pydantic-core==2.33.2
-pydantic-settings==2.10.1
-python-multipart==0.0.20
-python-dotenv==1.1.1
-PyYAML==6.0.2
-tqdm==4.67.1
-loguru==0.7.3
-psutil==7.0.0
-
+# Data processing
 # Development and Testing
-pytest==7.4.4
-pytest-asyncio==0.23.2
-black==23.12.1
-flake8==7.0.0
-
-# Optional: Jetson-specific packages (install manually on Jetson devices)
+# Drone Integration
+# Face Recognition and Person Re-ID
+# Geospatial processing
 # jetson-stats>=4.2.0
-# pycuda>=2022.2
-
-# Optional: TensorRT (install via JetPack on Jetson devices)
-# tensorrt>=8.6.0
-
+# Mapping and Geospatial
 # ONNX and Model Optimization
+# Optional: Jetson-specific packages (install manually on Jetson devices)
+# Optional: TensorRT (install via JetPack on Jetson devices)
+# pycuda>=2022.2
+# tensorrt>=8.6.0
+# Utilities
+# Web Framework
+av==11.0.0
+black==23.12.1
+djitellopy==2.5.0
+facenet-pytorch==2.5.3
+fastapi==0.116.1
+filterpy==1.4.5
+flake8==7.0.0
+folium==0.15.1
+geographiclib==2.0
+geopy==2.4.1
+imageio==2.37.0
+insightface==0.7.3
+loguru==0.7.3
+matplotlib==3.10.6
+networkx==3.5
+numpy==2.2.6
 onnx==1.19.0
 onnxruntime==1.22.1
 onnxruntime-gpu==1.22.0
-
-# Additional computer vision and plotting
-matplotlib==3.10.6
-imageio==2.37.0
-networkx==3.5
-
-# Geospatial processing
-pyproj==3.7.2
-shapely==2.1.1
-
-# Data processing
+opencv-python==4.12.0.88
+pillow==11.3.0
 polars==1.33.0
 protobuf==6.32.0
+psutil==7.0.0
+pydantic==2.11.7
+pydantic-core==2.33.2
+pydantic-settings==2.10.1
+pyproj==3.7.2
+pytest==7.4.4
+pytest-asyncio==0.23.2
+python-dotenv==1.1.1
+python-multipart==0.0.20
+PyYAML==6.0.2
+rasterio==1.3.9
+requests==2.32.5
+scikit-image==0.25.2
+scikit-learn==1.3.2
+scipy==1.16.1
+shapely==2.1.1
+starlette==0.47.3
+torch==2.8.0
+torchmetrics==1.2.1
+torchvision==0.23.0
+tqdm==4.67.1
+ultralytics==8.3.192
+uvicorn==0.35.0
+websockets==15.0.1

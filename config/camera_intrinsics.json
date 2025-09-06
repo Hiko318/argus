@@ -1,0 +1,156 @@
+{
+  "camera_profiles": {
+    "dji_o4_main": {
+      "name": "DJI O4 Main Camera",
+      "sensor_width_mm": 13.2,
+      "sensor_height_mm": 8.8,
+      "focal_length_mm": 24.0,
+      "image_width_px": 4000,
+      "image_height_px": 3000,
+      "principal_point": {
+        "cx": 2000.0,
+        "cy": 1500.0
+      },
+      "distortion": {
+        "k1": -0.1,
+        "k2": 0.05,
+        "k3": -0.01,
+        "p1": 0.001,
+        "p2": -0.001
+      },
+      "camera_matrix": {
+        "fx": 2909.09,
+        "fy": 2909.09,
+        "cx": 2000.0,
+        "cy": 1500.0
+      },
+      "fov": {
+        "horizontal_deg": 84.0,
+        "vertical_deg": 53.0,
+        "diagonal_deg": 94.0
+      }
+    },
+    "dji_o4_wide": {
+      "name": "DJI O4 Wide Camera",
+      "sensor_width_mm": 6.17,
+      "sensor_height_mm": 4.55,
+      "focal_length_mm": 4.5,
+      "image_width_px": 2688,
+      "image_height_px": 1512,
+      "principal_point": {
+        "cx": 1344.0,
+        "cy": 756.0
+      },
+      "distortion": {
+        "k1": -0.25,
+        "k2": 0.15,
+        "k3": -0.05,
+        "p1": 0.002,
+        "p2": -0.002
+      },
+      "camera_matrix": {
+        "fx": 1960.0,
+        "fy": 1960.0,
+        "cx": 1344.0,
+        "cy": 756.0
+      },
+      "fov": {
+        "horizontal_deg": 155.0,
+        "vertical_deg": 120.0,
+        "diagonal_deg": 170.0
+      }
+    },
+    "generic_drone": {
+      "name": "Generic Drone Camera",
+      "sensor_width_mm": 12.8,
+      "sensor_height_mm": 9.6,
+      "focal_length_mm": 20.0,
+      "image_width_px": 1920,
+      "image_height_px": 1080,
+      "principal_point": {
+        "cx": 960.0,
+        "cy": 540.0
+      },
+      "distortion": {
+        "k1": -0.05,
+        "k2": 0.02,
+        "k3": 0.0,
+        "p1": 0.0,
+        "p2": 0.0
+      },
+      "camera_matrix": {
+        "fx": 1500.0,
+        "fy": 1500.0,
+        "cx": 960.0,
+        "cy": 540.0
+      },
+      "fov": {
+        "horizontal_deg": 90.0,
+        "vertical_deg": 60.0,
+        "diagonal_deg": 100.0
+      }
+    }
+  },
+  "gimbal_profiles": {
+    "dji_o4_gimbal": {
+      "name": "DJI O4 3-Axis Gimbal",
+      "pitch_range": {
+        "min_deg": -90.0,
+        "max_deg": 30.0
+      },
+      "yaw_range": {
+        "min_deg": -320.0,
+        "max_deg": 320.0
+      },
+      "roll_range": {
+        "min_deg": -45.0,
+        "max_deg": 45.0
+      },
+      "stabilization": {
+        "pitch": true,
+        "yaw": true,
+        "roll": true
+      },
+      "mechanical_offset": {
+        "x_mm": 0.0,
+        "y_mm": 0.0,
+        "z_mm": -50.0
+      }
+    }
+  },
+  "coordinate_systems": {
+    "body_frame": {
+      "description": "Aircraft body frame (NED convention)",
+      "x_axis": "Forward (North)",
+      "y_axis": "Right (East)",
+      "z_axis": "Down"
+    },
+    "camera_frame": {
+      "description": "Camera coordinate system",
+      "x_axis": "Right in image",
+      "y_axis": "Down in image",
+      "z_axis": "Forward (optical axis)"
+    },
+    "enu_frame": {
+      "description": "East-North-Up local tangent plane",
+      "x_axis": "East",
+      "y_axis": "North",
+      "z_axis": "Up"
+    },
+    "wgs84": {
+      "description": "World Geodetic System 1984",
+      "ellipsoid": {
+        "semi_major_axis_m": 6378137.0,
+        "flattening": 0.003352810664747
+      }
+    }
+  },
+  "calibration_metadata": {
+    "last_calibrated": "2024-01-15T10:30:00Z",
+    "calibration_method": "Zhang's method with checkerboard pattern",
+    "calibration_images": 25,
+    "reprojection_error_px": 0.42,
+    "calibration_environment": "Controlled indoor lighting",
+    "notes": "Factory calibration verified with field measurements"
+  }
+}

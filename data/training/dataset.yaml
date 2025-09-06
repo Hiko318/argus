@@ -1,9 +1,16 @@
-names:
-- human
-- dog
-- cat
-nc: 3
-path: data\training\yolo_format
+# Enhanced SAR Dataset Configuration
+# 6-class detection: person, vehicle, structure, debris, dog, cat
+
+path: data/training/yolo_format
 train: train/images
 val: val/images
 test: test/images
+
+nc: 6  # number of classes
+names:
+  0: person
+  1: vehicle
+  2: structure
+  3: debris
+  4: dog
+  5: cat

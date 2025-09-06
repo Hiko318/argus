@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def load_enhanced_config():
     """Load the enhanced training configuration."""
-    config_path = Path('../configs/train_config.yaml')
+    config_path = Path(__file__).parent.parent / 'configs' / 'train_config.yaml'
     
     if not config_path.exists():
         logger.error(f"Configuration file not found: {config_path}")
