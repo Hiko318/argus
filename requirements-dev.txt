@@ -1,0 +1,129 @@
+# Development and Testing Dependencies for Foresight SAR System
+# Install with: pip install -r requirements-dev.txt
+
+# Testing Framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-xdist==3.3.1
+pytest-mock==3.12.0
+pytest-asyncio==0.21.1
+pytest-timeout==2.2.0
+pytest-html==4.1.1
+pytest-json-report==1.5.0
+
+# Code Quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+pylint==3.0.3
+bandit==1.7.5
+
+# Security Scanning
+safety==2.3.5
+pip-audit==2.6.1
+
+# Documentation
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+myst-parser==2.0.0
+sphinx-autodoc-typehints==1.25.2
+
+# SBOM Generation
+cyclonedx-bom==4.0.4
+package-url-python==0.11.2
+
+# Development Tools
+ipython==8.17.2
+jupyter==1.0.0
+notebook==7.0.6
+
+# Performance Profiling
+memory-profiler==0.61.0
+line-profiler==4.1.1
+py-spy==0.3.14
+
+# Database Testing
+sqlite3  # Built-in with Python
+
+# Mock Services
+responses==0.24.1
+httpretty==1.1.4
+
+# Load Testing
+locust==2.17.0
+
+# Git Hooks
+pre-commit==3.6.0
+
+# Environment Management
+python-dotenv==1.0.0
+
+# Type Checking
+types-requests==2.31.0.10
+types-PyYAML==6.0.12.12
+types-pillow==10.1.0.2
+
+# Linting Extensions
+flake8-docstrings==1.7.0
+flake8-import-order==0.18.2
+flake8-bugbear==23.11.28
+
+# Coverage Reporting
+coverage[toml]==7.3.2
+
+# Build Tools
+build==1.0.3
+twine==4.0.2
+wheel==0.42.0
+
+# Container Testing
+testcontainers==3.7.1
+
+# API Testing
+httpx==0.25.2
+fastapi[all]==0.104.1  # For testing API endpoints
+
+# Monitoring and Logging
+prometheus-client==0.19.0
+structlog==23.2.0
+
+# Development Utilities
+watchdog==3.0.0
+rich==13.7.0
+click==8.1.7
+
+# Model Testing
+torchvision==0.16.1  # For testing vision models
+onnx==1.15.0  # For ONNX model testing
+
+# Geospatial Testing
+rasterio==1.3.9
+shapely==2.0.2
+
+# Video Processing Testing
+opencv-python==4.8.1.78
+
+# Network Testing
+aiohttp==3.9.1
+websockets==12.0
+
+# Configuration Testing
+pydantic==2.5.1
+PyYAML==6.0.1
+
+# Cryptography Testing
+cryptography==41.0.8
+
+# Time and Date Testing
+python-dateutil==2.8.2
+
+# Serialization Testing
+msgpack==1.0.7
+
+# Compression Testing
+lz4==4.3.2
+
+# Hardware Testing Mocks
+psutil==5.9.6
+GPUtil==1.4.0

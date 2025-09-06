@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import VideoOverlay from './components/VideoOverlay';
+import MapPanel from './components/MapPanel';
+import SuspectLockDialog from './components/SuspectLockDialog';
+import HandoffModal from './components/HandoffModal';
 
 /* ---------- settings (edit if you ever change backend) ---------- */
 const PREVIEW_URL = "http://127.0.0.1:8000/preview";
@@ -152,54 +156,7 @@ function Dropdown({ open, anchorRef, onClose, width = 320, children }) {
 }
 
 /* ---------- helpers ---------- */
-function IdleBanner({ mode, faceBlur }) {
-  return (
-    <div style={{ textAlign: "center", color: "#10b981" }}>
-      <div
-        style={{
-          width: 140,
-          height: 140,
-          borderRadius: "50%",
-          background: "rgba(16,185,129,0.12)",
-          border: "2px solid rgba(16,185,129,0.4)",
-          display: "grid",
-          placeItems: "center",
-          margin: "0 auto 16px auto",
-        }}
-      >
-        <svg width="70" height="70" viewBox="0 0 24 24" fill="#10b981">
-          <path d="M8 5v14l11-7z" />
-        </svg>
-      </div>
-      <div style={{ fontSize: 28, letterSpacing: 1 }}>
-        NO SIGNAL… {mode === "SAR" ? "(SAR)" : "(Suspect-Lock)"}{" "}
-        {faceBlur ? "• BLUR" : ""}
-      </div>
-    </div>
-  );
-}
-
-function Overlay({ msg }) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 12,
-        left: "50%",
-        transform: "translateX(-50%)",
-        background: "rgba(0,0,0,0.55)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        padding: "8px 12px",
-        borderRadius: 8,
-        color: "#E5E7EB",
-        fontSize: 13,
-        backdropFilter: "blur(2px)",
-      }}
-    >
-      {msg}
-    </div>
-  );
-}
+// Component definitions moved to separate files
 
 /* ---------- main app ---------- */
 export default function App() {
@@ -218,7 +175,15 @@ export default function App() {
 
   // suspect uploads
   const [suspectImgs, setSuspectImgs] = useState([]);
-  const filePickerRef = useRef(null);
+  const [suspectLocked, setSuspectLocked] = useState(false);
+  const [lockConfig, setLockConfig] = useState({ mode: 'face', confidence: 0.75 });
+
+  // handoff modal
+  const [handoffOpen, setHandoffOpen] = useState(false);
+
+  // mock location data
+  const [currentLocation] = useState({ lat: 37.7749, lng: -122.4194 });
+  const [suspectData] = useState({ confidence: 0.87, lastSeen: Date.now() });
 
   // dropdown
   const modeBtnRef = useRef(null);
@@ -314,19 +279,21 @@ export default function App() {
     pushLog(`Mode set to ${next}`);
   }
 
-  function openFilePicker() {
-    filePickerRef.current?.click();
+  // File upload functions moved to SuspectLockDialog component
+
+  // suspect lock handlers
+  function handleLockToggle(locked, config) {
+    setSuspectLocked(locked);
+    setLockConfig(config);
+    pushLog(locked ? `Suspect lock activated (${config.mode}, ${(config.confidence * 100).toFixed(0)}%)` : 'Suspect lock deactivated');
   }
-  function onFilesChosen(e) {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    const next = files.map((f) => ({ name: f.name, url: URL.createObjectURL(f) }));
-    setSuspectImgs((prev) => [...prev, ...next]);
-    e.target.value = "";
-  }
-  function clearUploads() {
-    suspectImgs.forEach((i) => URL.revokeObjectURL(i.url));
-    setSuspectImgs([]);
+
+  // handoff handlers
+  function handleHandoff(handoffData) {
+    pushLog(`Emergency handoff initiated to ${handoffData.type} (${handoffData.priority} priority)`);
+    console.log('Handoff data:', handoffData);
+    // In real implementation, this would send data to backend
+    return Promise.resolve();
   }
 
   // image load / error handlers
@@ -443,48 +410,23 @@ export default function App() {
         }}
       >
         {/* Left video */}
-        <div
+        <VideoOverlay
+          running={running}
+          method={method}
+          mode={mode}
+          faceBlur={faceBlur}
+          previewSrc={previewSrc}
+          streamSrc={streamSrc}
+          stalled={stalled}
+          errorsInARow={errorsInARow}
+          onImageLoad={handleImageLoad}
+          onImageError={handleImageError}
           style={{
-            position: "relative",
             width: "100%",
             height: "100%",
-            background: "#000",
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
+            borderRadius: 12
           }}
-        >
-          {!running ? (
-            <IdleBanner mode={mode} faceBlur={faceBlur} />
-          ) : method === "polling" ? (
-            <>
-              <img
-                src={previewSrc}
-                alt="Live Feed"
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                draggable={false}
               />
-              {stalled && <Overlay msg="Stalled — no new frames. Check backend/ffmpeg." />}
-              {errorsInARow > 0 && !stalled && <Overlay msg="Fetching… (retrying)" />}
-            </>
-          ) : (
-            <>
-              <img
-                src={streamSrc}
-                alt="Live MJPEG"
-                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                draggable={false}
-              />
-              {stalled && <Overlay msg="Stream appears stalled — check backend." />}
-            </>
-          )}
-        </div>
 
         {/* Right panels */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
@@ -493,46 +435,25 @@ export default function App() {
             <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
               <MiniBtn>Confirm</MiniBtn>
               <MiniBtn>Reject</MiniBtn>
-              <MiniBtn>Handoff</MiniBtn>
+              <MiniBtn onClick={() => setHandoffOpen(true)}>Handoff</MiniBtn>
             </div>
           </Collapsible>
 
-          <Collapsible title="Suspect">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <button onClick={openFilePicker} style={uploadBtnStyle}>Upload photo(s)</button>
-              <input
-                ref={filePickerRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={onFilesChosen}
-                style={{ display: "none" }}
-              />
-              <span style={{ color: "#9ca3af", fontSize: 12 }}>or drag & drop below</span>
-            </div>
-
-            <div style={{ border: "1px dashed rgba(255,255,255,0.15)", padding: 12, borderRadius: 10, textAlign: "center", color: "#9ca3af" }}>
-              Drop reference image(s) here
-            </div>
-
-            {suspectImgs.length > 0 && (
-              <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))", gap: 8, marginTop: 10 }}>
-                  {suspectImgs.map((img, i) => (
-                    <div key={`${img.name}-${i}`} style={{ position: "relative", height: 72, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <MiniBtn onClick={clearUploads}>Clear</MiniBtn>
-                </div>
-              </>
-            )}
+          <Collapsible title="Suspect Lock">
+            <SuspectLockDialog
+              suspectImgs={suspectImgs}
+              onImagesChange={setSuspectImgs}
+              onLockToggle={handleLockToggle}
+              isLocked={suspectLocked}
+            />
           </Collapsible>
 
           <Collapsible title="Maps">
-            <div style={{ height: 180, background: "#222" }}>🗺️ Map here</div>
+            <MapPanel
+              currentLocation={currentLocation}
+              suspectData={suspectData}
+              style={{ height: 180 }}
+            />
           </Collapsible>
 
           <Collapsible title="Logs" defaultOpen={false}>
@@ -552,6 +473,15 @@ export default function App() {
         <div>Latency: <span style={{ color: running ? "#10b981" : "#ef4444" }}>{latency}ms</span> | Disk: 73%</div>
         <div>Model: <span style={{ color: "#10b981" }}>yolo_sar_n.onnx</span> | Telemetry: OCR</div>
       </div>
+
+      {/* Handoff Modal */}
+      <HandoffModal
+        isOpen={handoffOpen}
+        onClose={() => setHandoffOpen(false)}
+        onHandoff={handleHandoff}
+        currentLocation={currentLocation}
+        suspectData={suspectData}
+      />
     </div>
   );
 }

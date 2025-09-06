@@ -1,0 +1,225 @@
+# DJI O4 Air Unit Configuration
+# Supports both Mobile SDK (Android) and Payload SDK (Jetson) modes
+
+# Global settings
+global:
+  log_level: INFO
+  connection_timeout: 30  # seconds
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+# Mobile SDK Configuration (Android devices)
+mobile_sdk:
+  # DJI Developer Account Settings
+  app_key: "YOUR_DJI_APP_KEY_HERE"  # Register at developer.dji.com
+  app_name: "Foresight SAR"
+  
+  # Video Stream Settings
+  video:
+    resolution: "1920x1080"  # Options: 1920x1080, 1280x720, 640x480
+    fps: 30                  # Target frame rate
+    codec: "H264"           # Video codec
+    bitrate: 8000           # kbps
+    
+  # Telemetry Settings
+  telemetry:
+    rate: 10                # Hz - telemetry update frequency
+    enable_gps: true
+    enable_attitude: true
+    enable_velocity: true
+    enable_gimbal: true
+    enable_battery: true
+    
+  # Connection Settings
+  connection:
+    auto_connect: true
+    wifi_ssid: "DJI_O4_*"   # Auto-connect to DJI O4 networks
+    usb_debugging: false
+    
+# Payload SDK Configuration (Jetson/Linux devices)
+payload_sdk:
+  # Hardware Interface
+  hardware:
+    uart_device: "/dev/ttyUSB0"  # UART connection to flight controller
+    baudrate: 921600             # UART baud rate
+    usb_device: "/dev/video0"    # USB video device (if applicable)
+    
+  # Video Stream Settings
+  video:
+    format: "H264"              # Video format from aircraft
+    resolution: "1920x1080"
+    fps: 30
+    
+    # GStreamer Pipeline Configuration
+    gstreamer:
+      pipeline: |
+        udpsrc port=5600 
+        ! application/x-rtp,encoding-name=H264,payload=96 
+        ! rtph264depay 
+        ! h264parse 
+        ! nvv4l2decoder 
+        ! nvvidconv 
+        ! video/x-raw,format=BGRx 
+        ! videoconvert 
+        ! video/x-raw,format=BGR 
+        ! appsink
+      
+      # Hardware acceleration (Jetson)
+      use_hardware_decode: true
+      gpu_memory_fraction: 0.3
+      
+  # Telemetry Settings
+  telemetry:
+    rate: 20                    # Hz - higher rate for payload SDK
+    protocol: "UART"            # UART or USB
+    data_format: "DJI_PSDK"     # DJI Payload SDK format
+    
+  # Flight Controller Interface
+  flight_controller:
+    enable_control: false       # Enable flight control commands
+    control_authority: "NONE"   # NONE, HORIZONTAL, VERTICAL, FULL
+    
+# Recording Configuration
+recording:
+  enable: true
+  output_dir: "data/recordings"
+  
+  # Video Recording
+  video:
+    enable: true
+    format: "mp4"
+    codec: "h264"
+    quality: "high"             # low, medium, high
+    
+  # Telemetry Recording
+  telemetry:
+    enable: true
+    format: "json"              # json, csv, binary
+    compression: true
+    
+  # Automatic file management
+  file_management:
+    max_file_size: "1GB"        # Split files when reaching size
+    max_duration: 3600          # seconds - split files when reaching duration
+    cleanup_old_files: true
+    retention_days: 30
+
+# Network Configuration
+network:
+  # Video streaming over network
+  rtmp:
+    enable: false
+    server: "rtmp://localhost:1935/live"
+    stream_key: "foresight_stream"
+    
+  # UDP streaming
+  udp:
+    enable: false
+    host: "localhost"
+    video_port: 5600
+    telemetry_port: 5601
+    
+  # WebRTC for browser streaming
+  webrtc:
+    enable: false
+    stun_servers:
+      - "stun:stun.l.google.com:19302"
+    
+# Quality of Service
+qos:
+  # Frame dropping policy
+  frame_drop:
+    enable: true
+    max_queue_size: 10          # Drop frames if queue exceeds this
+    priority: "latest"          # latest, oldest
+    
+  # Adaptive bitrate
+  adaptive_bitrate:
+    enable: true
+    min_bitrate: 2000           # kbps
+    max_bitrate: 15000          # kbps
+    target_latency: 200         # ms
+    
+# Error Handling
+error_handling:
+  # Connection recovery
+  auto_reconnect: true
+  reconnect_delay: 5            # seconds
+  max_reconnect_attempts: 10
+  
+  # Frame loss handling
+  frame_loss:
+    detection_threshold: 5      # consecutive lost frames
+    recovery_action: "reconnect" # reconnect, continue, abort
+    
+  # Telemetry validation
+  telemetry_validation:
+    enable: true
+    gps_accuracy_threshold: 5.0 # meters
+    altitude_range: [0, 500]    # meters AGL
+    velocity_range: [0, 30]     # m/s
+
+# Development and Testing
+development:
+  # Simulation mode
+  simulation:
+    enable: false
+    test_pattern: "aerial_view"  # aerial_view, color_bars, noise
+    synthetic_telemetry: true
+    
+  # Debug settings
+  debug:
+    save_raw_frames: false
+    frame_analysis: false
+    telemetry_logging: false
+    performance_metrics: true
+    
+  # Test data
+  test_data:
+    recorded_flight_path: "data/test_recordings/"
+    use_recorded_data: false
+
+# Security Settings
+security:
+  # Encryption
+  encryption:
+    enable: false
+    algorithm: "AES-256"
+    key_rotation_interval: 3600 # seconds
+    
+  # Authentication
+  authentication:
+    enable: false
+    method: "certificate"       # certificate, token, none
+    certificate_path: "certs/dji_o4.pem"
+    
+  # Data privacy
+  privacy:
+    anonymize_gps: false
+    blur_sensitive_areas: false
+    data_retention_policy: "operational" # operational, training, none
+
+# Platform-specific overrides
+platform_overrides:
+  # Jetson Nano specific settings
+  jetson_nano:
+    video:
+      fps: 15                   # Lower FPS for Nano
+      resolution: "1280x720"    # Lower resolution
+    gstreamer:
+      gpu_memory_fraction: 0.5
+      
+  # Jetson Xavier specific settings
+  jetson_xavier:
+    video:
+      fps: 60                   # Higher FPS capability
+    gstreamer:
+      gpu_memory_fraction: 0.2
+      
+  # Android specific settings
+  android:
+    video:
+      hardware_decode: true
+    connection:
+      prefer_wifi: true
+      usb_fallback: true

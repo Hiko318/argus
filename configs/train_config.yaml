@@ -1,0 +1,171 @@
+# YOLOv8 Training Configuration for SAR Operations
+# Optimized for person detection in aerial imagery
+
+# Model configuration
+model: yolov8s.pt  # Use small model for better accuracy (upgraded from nano)
+
+# Dataset configuration
+data:
+  path: datasets/sar_dataset
+  train: images/train
+  val: images/val
+  test: images/test
+  
+  # Class definitions for SAR operations (enhanced with pets)
+  nc: 6  # number of classes
+  names:
+    0: person
+    1: vehicle
+    2: structure
+    3: debris
+    4: dog
+    5: cat
+
+# Training hyperparameters (optimized for covered human detection)
+hyp:
+  # Learning rate settings
+  lr0: 0.008         # slightly lower initial learning rate for stability
+  lrf: 0.005         # lower final learning rate for fine-tuning
+  momentum: 0.937    # SGD momentum
+  weight_decay: 0.0008  # increased weight decay for better generalization
+  warmup_epochs: 5.0    # longer warmup for stability
+  warmup_momentum: 0.8  # warmup initial momentum
+  warmup_bias_lr: 0.1   # warmup initial bias lr
+  
+  # Loss function weights (enhanced for covered humans)
+  box: 0.075         # increased box loss for better localization
+  cls: 0.6           # increased cls loss for better classification
+  dfl: 1.8           # increased dfl loss for better distribution focal loss
+  
+  # Data augmentation (enhanced for covered/occluded detection)
+  hsv_h: 0.02        # increased HSV-Hue for lighting variations
+  hsv_s: 0.8         # increased HSV-Saturation for better contrast
+  hsv_v: 0.5         # increased HSV-Value for shadow/lighting conditions
+  degrees: 5.0       # small rotation for varied perspectives
+  translate: 0.15    # increased translation for partial occlusion simulation
+  scale: 0.7         # increased scale variation for size diversity
+  shear: 2.0         # small shear for perspective variations
+  perspective: 0.0002 # slight perspective changes
+  flipud: 0.0        # no vertical flipping for aerial imagery
+  fliplr: 0.5        # horizontal flipping
+  mosaic: 1.0        # mosaic augmentation for complex scenes
+  mixup: 0.15        # mixup for better generalization
+  copy_paste: 0.0    # segment copy-paste (probability)
+
+# Training settings (enhanced for better accuracy)
+epochs: 150
+batch_size: 12  # reduced for larger model and better gradient updates
+imgsz: 736      # increased image size for better small object detection
+device: 0  # GPU device, use 'cpu' for CPU training
+workers: 8
+project: runs/train
+name: sar_yolov8
+exist_ok: true
+pretrained: true
+optimizer: SGD
+verbose: true
+seed: 0
+deterministic: true
+single_cls: false
+rect: false
+cos_lr: false
+close_mosaic: 10
+resume: false
+amp: true  # Automatic Mixed Precision
+fraction: 1.0
+profile: false
+freeze: null
+multi_scale: false
+overlap_mask: true
+mask_ratio: 4
+dropout: 0.0
+val: true
+split: val
+save_json: false
+save_hybrid: false
+conf: null
+iou: 0.7
+max_det: 300
+half: false
+dnn: false
+plots: true
+
+# SAR-specific optimizations (enhanced for covered humans and pets)
+sar_config:
+  # Aerial imagery specific settings
+  min_object_size: 8   # reduced for smaller/distant objects
+  max_object_size: 300 # increased for closer objects
+  
+  # Detection confidence thresholds (optimized for >93% accuracy)
+  person_conf_threshold: 0.15      # lowered for better recall of covered humans
+  vehicle_conf_threshold: 0.3
+  structure_conf_threshold: 0.4
+  debris_conf_threshold: 0.2
+  dog_conf_threshold: 0.2          # new threshold for dogs
+  cat_conf_threshold: 0.2          # new threshold for cats
+  
+  # NMS settings for aerial imagery
+  nms_iou_threshold: 0.4           # slightly lower for better detection of overlapping objects
+  
+  # Training data balance (enhanced with pets)
+  person_weight: 3.0               # increased weight for critical person detection
+  vehicle_weight: 1.5
+  structure_weight: 1.0
+  debris_weight: 1.2
+  dog_weight: 2.5                  # high weight for pet detection
+  cat_weight: 2.5                  # high weight for pet detection
+  
+  # Advanced settings for covered human detection
+  occlusion_augmentation: true     # enable occlusion-specific augmentation
+  multi_scale_training: true       # enable multi-scale training
+  focal_loss_alpha: 0.25          # focal loss for hard examples
+  focal_loss_gamma: 2.0           # focal loss focusing parameter
+
+# Validation settings
+val_config:
+  save_txt: true
+  save_conf: true
+  save_json: true
+  plots: true
+  
+# Export settings for deployment
+export_config:
+  formats: ['onnx', 'tensorrt']  # Export formats
+  optimize: true
+  half: true
+  dynamic: false
+  simplify: true
+  opset: 11
+  workspace: 4  # TensorRT workspace size (GB)
+  nms: true
+  
+# Callbacks and logging
+callbacks:
+  tensorboard: true
+  wandb: false  # Set to true if using Weights & Biases
+  clearml: false
+  
+logging:
+  log_dir: logs/training
+  save_period: 10  # Save checkpoint every N epochs
+  
+# Hardware-specific optimizations
+hardware:
+  # For Jetson deployment
+  jetson:
+    batch_size: 8
+    imgsz: 416
+    half: true
+    
+  # For high-end GPU training
+  gpu_high_end:
+    batch_size: 32
+    imgsz: 832
+    workers: 16
+    
+  # For CPU training (fallback)
+  cpu:
+    batch_size: 4
+    imgsz: 320
+    workers: 4
+    amp: false

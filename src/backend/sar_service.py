@@ -160,9 +160,9 @@ class SARService:
         
     def setup_static_files(self):
         """Setup static file serving for the frontend"""
-        frontend_path = Path(__file__).parent.parent / "frontend"
-        if frontend_path.exists():
-            self.app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
+        # Serve static files from the project root directory
+        project_root = Path(__file__).parent.parent.parent
+        self.app.mount("/static", StaticFiles(directory=str(project_root)), name="static")
     
     def setup_routes(self):
         """Setup all API routes and WebSocket endpoints"""
@@ -170,9 +170,10 @@ class SARService:
         @self.app.get("/", response_class=HTMLResponse)
         async def serve_interface():
             """Serve the main SAR interface"""
-            frontend_path = Path(__file__).parent.parent / "frontend" / "sar_interface.html"
+            # Serve the HTML file from the project root
+            frontend_path = Path(__file__).parent.parent.parent / "index.html"
             if frontend_path.exists():
-                return HTMLResponse(content=frontend_path.read_text(), status_code=200)
+                return HTMLResponse(content=frontend_path.read_text(encoding='utf-8'), status_code=200)
             else:
                 return HTMLResponse(content="<h1>SAR Interface Not Found</h1>", status_code=404)
         
@@ -537,19 +538,21 @@ class SARService:
                         
                         # Log telemetry data periodically
                         self.logging_service.log_telemetry(
-                            telemetry_data={
-                                "gps": sar_telemetry.gps,
-                                "altitude": sar_telemetry.altitude,
-                                "heading": sar_telemetry.heading,
-                                "speed": sar_telemetry.speed,
-                                "battery": sar_telemetry.battery,
-                                "mode": self.current_mode,
-                                "tracking_active": self.tracking_active
+                            drone_gps=sar_telemetry.gps,
+                            orientation={
+                                "roll": 0.0,  # Default values - update with actual data when available
+                                "pitch": 0.0,
+                                "yaw": sar_telemetry.heading
                             },
-                            metadata={
-                                "session_id": getattr(self.logging_service, 'session_id', 'unknown'),
-                                "system_status": "operational"
-                            }
+                            camera_intrinsics={
+                                "fx": 800.0,  # Default camera intrinsics
+                                "fy": 800.0,
+                                "cx": 320.0,
+                                "cy": 240.0
+                            },
+                            flight_mode=self.current_mode,
+                            battery_level=sar_telemetry.battery,
+                            signal_strength=None
                         )
                         
                         # Broadcast to connected clients

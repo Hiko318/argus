@@ -1,0 +1,92 @@
+# Foresight SAR System - Jetson Requirements
+# Optimized for NVIDIA Jetson devices with CUDA/TensorRT support
+
+# Core ML/AI frameworks
+torch==2.0.1+cu118
+torchvision==0.15.2+cu118
+ultralytics==8.0.196
+onnx==1.14.1
+onnxruntime-gpu==1.15.1
+
+# Computer Vision
+opencv-python==4.8.0.76
+Pillow==10.0.0
+scikit-image==0.21.0
+
+# Geospatial and mapping
+rasterio==1.3.8
+fiona==1.9.4
+shapely==2.0.1
+pyproj==3.6.0
+folium==0.14.0
+geopy==2.3.0
+
+# Web framework and API
+fastapi==0.103.1
+uvicorn[standard]==0.23.2
+websockets==11.0.3
+jinja2==3.1.2
+python-multipart==0.0.6
+
+# Data processing
+numpy==1.24.3
+scipy==1.11.2
+pandas==2.0.3
+numba==0.57.1
+
+# Database and caching
+redis==4.6.0
+psycopg2-binary==2.9.7
+sqlalchemy==2.0.20
+alembic==1.12.0
+
+# Cryptography and security
+cryptography==41.0.4
+pycryptodome==3.18.0
+hashlib-compat==1.0.1
+
+# Networking and protocols
+requests==2.31.0
+aiohttp==3.8.5
+websocket-client==1.6.2
+paho-mqtt==1.6.1
+
+# Utilities
+pyyaml==6.0.1
+click==8.1.7
+rich==13.5.2
+tqdm==4.66.1
+psutil==5.9.5
+watchdog==3.0.0
+
+# Logging and monitoring
+loguru==0.7.0
+prometheus-client==0.17.1
+
+# Testing (optional for production)
+pytest==7.4.2
+pytest-asyncio==0.21.1
+
+# Jetson-specific optimizations
+# Note: These should be installed via JetPack SDK
+# jetson-stats  # Install separately: pip install jetson-stats
+# jetson-gpio   # Install separately: pip install Jetson.GPIO
+
+# TensorRT (comes with JetPack)
+# tensorrt>=8.5.0  # Installed with JetPack
+
+# CUDA toolkit dependencies (comes with JetPack)
+# cupy-cuda11x>=11.0.0  # Optional for GPU acceleration
+
+# Additional edge-specific packages
+serial==0.0.97  # For hardware communication
+gpiozero==1.6.2  # GPIO control
+rpi-gpio==0.7.0  # GPIO compatibility
+
+# Memory optimization
+memory-profiler==0.61.0
+objgraph==3.6.0
+
+# Performance monitoring
+py-spy==0.3.14
+line-profiler==4.1.1
