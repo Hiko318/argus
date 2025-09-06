@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  foresight-sar:
+    build:
+      context: ../..
+      dockerfile: deploy/jetson/Dockerfile
+    container_name: foresight-sar
+    restart: unless-stopped
+    
+    # GPU access for CUDA/TensorRT
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+    
+    # Port mappings
+    ports:
+      - "8000:8000"    # FastAPI backend
+      - "8080:8080"    # Web interface
+      - "5000:5000"    # WebSocket connections
+    
+    # Volume mounts
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./evidence:/app/evidence
+      - ./logs:/app/logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    
+    # Environment variables
+    environment:
+      - DISPLAY=${DISPLAY}
+      - CUDA_VISIBLE_DEVICES=0
+      - TENSORRT_CACHE_DIR=/app/cache/tensorrt
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+    
+    # Device access
+    devices:
+      - /dev/video0:/dev/video0  # Camera access
+    
+    # Network configuration
+    network_mode: host
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: foresight-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for metadata storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: foresight-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=foresight
+      - POSTGRES_USER=foresight
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-foresight_default}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

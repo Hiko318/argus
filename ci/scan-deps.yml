@@ -1,0 +1,445 @@
+# Dependency Scanning CI/CD Pipeline
+# Foresight SAR System - Security and Compliance
+
+name: Dependency Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  python-security-scan:
+    name: Python Dependencies Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit semgrep pip-audit
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+        
+    - name: Run Safety check (known vulnerabilities)
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check --short-report
+      continue-on-error: true
+      
+    - name: Run pip-audit (PyPI vulnerabilities)
+      run: |
+        pip-audit --format=json --output=pip-audit-report.json || true
+        pip-audit --format=cyclonedx-json --output=pip-audit-sbom.json || true
+        pip-audit
+      continue-on-error: true
+      
+    - name: Run Bandit (security linting)
+      run: |
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -ll
+      continue-on-error: true
+      
+    - name: Run Semgrep (SAST)
+      run: |
+        semgrep --config=auto --json --output=semgrep-report.json . || true
+        semgrep --config=auto .
+      continue-on-error: true
+      
+    - name: Upload Python security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-security-reports
+        path: |
+          safety-report.json
+          pip-audit-report.json
+          pip-audit-sbom.json
+          bandit-report.json
+          semgrep-report.json
+        retention-days: 30
+
+  javascript-security-scan:
+    name: JavaScript Dependencies Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install npm dependencies
+      run: |
+        if [ -f package.json ]; then npm ci; fi
+        
+    - name: Run npm audit
+      run: |
+        if [ -f package.json ]; then
+          npm audit --audit-level=moderate --json > npm-audit-report.json || true
+          npm audit --audit-level=moderate
+        fi
+      continue-on-error: true
+      
+    - name: Run Snyk test
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      run: |
+        if [ -f package.json ] && [ ! -z "$SNYK_TOKEN" ]; then
+          npx snyk test --json > snyk-report.json || true
+          npx snyk test
+        fi
+      continue-on-error: true
+      
+    - name: Upload JavaScript security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: javascript-security-reports
+        path: |
+          npm-audit-report.json
+          snyk-report.json
+        retention-days: 30
+
+  docker-security-scan:
+    name: Docker Image Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker image
+      run: |
+        if [ -f Dockerfile ]; then
+          docker build -t foresight-sar:scan .
+        elif [ -f deploy/jetson/Dockerfile ]; then
+          docker build -f deploy/jetson/Dockerfile -t foresight-sar:scan .
+        fi
+        
+    - name: Run Trivy vulnerability scanner
+      run: |
+        if docker images | grep -q foresight-sar; then
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}:/workspace \
+            aquasec/trivy:latest image \
+            --format json --output /workspace/trivy-report.json \
+            foresight-sar:scan || true
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image foresight-sar:scan
+        fi
+      continue-on-error: true
+      
+    - name: Run Grype vulnerability scanner
+      run: |
+        if docker images | grep -q foresight-sar; then
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype foresight-sar:scan -o json > grype-report.json || true
+          grype foresight-sar:scan
+        fi
+      continue-on-error: true
+      
+    - name: Upload Docker security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-security-reports
+        path: |
+          trivy-report.json
+          grype-report.json
+        retention-days: 30
+
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install license checking tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-licenses licensecheck
+        
+    - name: Check Python package licenses
+      run: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+          pip-licenses --format=json --output-file=python-licenses.json
+          pip-licenses --format=csv --output-file=python-licenses.csv
+          pip-licenses
+        fi
+      continue-on-error: true
+      
+    - name: Set up Node.js for license check
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Check JavaScript package licenses
+      run: |
+        if [ -f package.json ]; then
+          npm ci
+          npx license-checker --json > javascript-licenses.json || true
+          npx license-checker --csv > javascript-licenses.csv || true
+          npx license-checker
+        fi
+      continue-on-error: true
+      
+    - name: Upload license reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-reports
+        path: |
+          python-licenses.json
+          python-licenses.csv
+          javascript-licenses.json
+          javascript-licenses.csv
+        retention-days: 30
+
+  sbom-generation:
+    name: Software Bill of Materials (SBOM)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install SBOM tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install cyclonedx-bom pip-audit
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        
+    - name: Generate Python SBOM
+      run: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+          cyclonedx-py -o sbom-python.json
+          pip-audit --format=cyclonedx-json --output=sbom-python-audit.json
+        fi
+      continue-on-error: true
+      
+    - name: Generate comprehensive SBOM with Syft
+      run: |
+        syft . -o spdx-json=sbom-comprehensive.spdx.json
+        syft . -o cyclonedx-json=sbom-comprehensive.cyclonedx.json
+        syft . -o table
+      continue-on-error: true
+      
+    - name: Upload SBOM files
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom-files
+        path: |
+          sbom-python.json
+          sbom-python-audit.json
+          sbom-comprehensive.spdx.json
+          sbom-comprehensive.cyclonedx.json
+        retention-days: 90
+
+  security-summary:
+    name: Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [python-security-scan, javascript-security-scan, docker-security-scan, license-compliance, sbom-generation]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Install report generation tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install jq yq-python
+        
+    - name: Generate security summary
+      run: |
+        echo "# Security Scan Summary" > security-summary.md
+        echo "Generated on: $(date)" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        # Python security summary
+        echo "## Python Dependencies" >> security-summary.md
+        if [ -f python-security-reports/safety-report.json ]; then
+          echo "### Safety Check Results" >> security-summary.md
+          python -c "
+        import json
+        try:
+            with open('python-security-reports/safety-report.json') as f:
+                data = json.load(f)
+                print(f'- Vulnerabilities found: {len(data.get(\"vulnerabilities\", []))}')
+        except: pass
+        " >> security-summary.md
+        fi
+        
+        if [ -f python-security-reports/bandit-report.json ]; then
+          echo "### Bandit Security Linting" >> security-summary.md
+          python -c "
+        import json
+        try:
+            with open('python-security-reports/bandit-report.json') as f:
+                data = json.load(f)
+                metrics = data.get('metrics', {})
+                print(f'- High severity issues: {metrics.get(\"_totals\", {}).get(\"SEVERITY.HIGH\", 0)}')
+                print(f'- Medium severity issues: {metrics.get(\"_totals\", {}).get(\"SEVERITY.MEDIUM\", 0)}')
+                print(f'- Low severity issues: {metrics.get(\"_totals\", {}).get(\"SEVERITY.LOW\", 0)}')
+        except: pass
+        " >> security-summary.md
+        fi
+        
+        # License compliance summary
+        echo "## License Compliance" >> security-summary.md
+        if [ -f license-reports/python-licenses.json ]; then
+          echo "### Python Package Licenses" >> security-summary.md
+          python -c "
+        import json
+        try:
+            with open('license-reports/python-licenses.json') as f:
+                data = json.load(f)
+                licenses = {}
+                for pkg in data:
+                    license_name = pkg.get('License', 'Unknown')
+                    licenses[license_name] = licenses.get(license_name, 0) + 1
+                for license_name, count in sorted(licenses.items()):
+                    print(f'- {license_name}: {count} packages')
+        except: pass
+        " >> security-summary.md
+        fi
+        
+        echo "" >> security-summary.md
+        echo "## Recommendations" >> security-summary.md
+        echo "1. Review all high and medium severity vulnerabilities" >> security-summary.md
+        echo "2. Update dependencies with known security issues" >> security-summary.md
+        echo "3. Verify license compatibility for all dependencies" >> security-summary.md
+        echo "4. Implement automated dependency updates where appropriate" >> security-summary.md
+        
+    - name: Upload security summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-summary
+        path: security-summary.md
+        retention-days: 90
+        
+    - name: Comment PR with security summary
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          try {
+            const summary = fs.readFileSync('security-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+          } catch (error) {
+            console.log('Could not read security summary file');
+          }
+
+  security-policy-check:
+    name: Security Policy Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for security policy files
+      run: |
+        echo "Checking for required security policy files..."
+        
+        # Check for SECURITY.md
+        if [ -f SECURITY.md ] || [ -f .github/SECURITY.md ]; then
+          echo "✓ SECURITY.md found"
+        else
+          echo "✗ SECURITY.md missing"
+          exit 1
+        fi
+        
+        # Check for DPIA template
+        if [ -f docs/DPIA_template.md ]; then
+          echo "✓ DPIA template found"
+        else
+          echo "✗ DPIA template missing"
+        fi
+        
+        # Check for evidence packaging
+        if [ -f evidence_packager.py ]; then
+          echo "✓ Evidence packager found"
+        else
+          echo "✗ Evidence packager missing"
+        fi
+        
+        # Check for deployment security
+        if [ -f deploy/jetson/Dockerfile ]; then
+          echo "✓ Jetson deployment configuration found"
+        else
+          echo "✗ Jetson deployment configuration missing"
+        fi
+        
+        echo "Security policy compliance check completed"
+
+# Security scanning configuration
+# This workflow provides comprehensive security scanning for the Foresight SAR System
+# including dependency vulnerabilities, license compliance, and SBOM generation.
+#
+# Required secrets:
+# - SNYK_TOKEN: Snyk API token for enhanced vulnerability scanning
+#
+# Artifacts generated:
+# - Security reports (JSON format)
+# - License compliance reports
+# - Software Bill of Materials (SBOM)
+# - Security summary report
+#
+# The workflow runs on:
+# - Every push to main/develop branches
+# - Pull requests to main branch
+# - Daily scheduled runs
+# - Manual triggers

@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foresight 1.0 - Enhanced SAR Interface</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.css" />
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Basic reset and layout */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        
+        .sar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Header styles */
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 10px 20px;
+            border-bottom: 2px solid #3498db;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            position: relative;
+            width: 30px;
+            height: 30px;
+        }
+        
+        .logo-outer-circle {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #3498db;
+            border-radius: 50%;
+            position: absolute;
+        }
+        
+        .logo-inner-circle {
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .logo-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .logo-license {
+            font-size: 12px;
+            color: #95a5a6;
+            font-style: italic;
+        }
+        
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .header-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .header-btn:hover {
+            background: linear-gradient(135deg, #2980b9, #1f5f8b);
+            transform: translateY(-1px);
+        }
+        
+        .header-btn.active {
+            background: linear-gradient(135deg, #27ae60, #229954);
+        }
+        
+        .header-dropdown {
+            background: #34495e;
+            color: white;
+            border: 1px solid #3498db;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Main content area */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .video-section {
+            flex: 2;
+            background: #000;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .sidebar {
+            flex: 1;
+            background: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            min-width: 350px;
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .sidebar-section {
+            padding: 15px;
+            border-bottom: 1px solid #34495e;
+        }
+        
+        .sidebar-section h3 {
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .telemetry-item {
+            background: #34495e;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .telemetry-label {
+            font-size: 12px;
+            color: #95a5a6;
+            display: block;
+        }
+        
+        .telemetry-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        #map {
+            height: 250px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .map-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .map-btn {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            flex: 1;
+        }
+        
+        .map-btn:hover {
+            background: #3498db;
+        }
+        
+        .map-btn.active {
+            background: #27ae60;
+        }
+        
+        .target-upload {
+            border: 2px dashed #3498db;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .target-upload:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .target-preview {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .detection-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .detection-item {
+            background: #34495e;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #3498db;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .detection-item:hover {
+            background: #3d566e;
+        }
+        
+        .detection-item.locked {
+            border-left-color: #e74c3c;
+            background: #4a2c2a;
+        }
+        
+        .detection-confidence {
+            font-size: 12px;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected {
+            background: #27ae60;
+            box-shadow: 0 0 5px #27ae60;
+        }
+        
+        .status-disconnected {
+            background: #e74c3c;
+        }
+        
+        /* Export and Snapshot Controls */
+        .export-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .export-btn {
+            background: #8e44ad;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .export-btn:hover {
+            background: #9b59b6;
+        }
+        
+        .export-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        /* Heatmap Controls */
+        .heatmap-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .heatmap-slider {
+            width: 100%;
+        }
+        
+        .heatmap-info {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .modal-content {
+            background-color: #2c3e50;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            color: white;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #34495e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #27ae60);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="sar-container">
+        <!-- Header Bar -->
+        <div class="header-bar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <div class="logo-outer-circle"></div>
+                    <div class="logo-inner-circle"></div>
+                </div>
+                <div>
+                    <div class="logo-text">Foresight 1.0</div>
+                    <div class="logo-license">Enhanced SAR Interface</div>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <button class="header-btn" onclick="toggleConnection()" id="connect-btn">
+                    <i class="fas fa-wifi"></i> Connect
+                </button>
+                <button class="header-btn" onclick="startSystem()" id="start-btn">
+                    <i class="fas fa-play"></i> Start
+                </button>
+                <button class="header-btn" onclick="stopSystem()" id="stop-btn">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+                <select class="header-dropdown" onchange="changeMode(this.value)">
+                    <option value="regular">Regular Mode</option>
+                    <option value="thermal">Thermal Mode</option>
+                    <option value="night">Night Vision</option>
+                </select>
+                <button class="header-btn" onclick="openExportModal()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button class="header-btn" onclick="openSettings()">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button class="close-btn" onclick="closeApplication()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Video Section -->
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="video-feed" autoplay muted>
+                        <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <canvas class="video-overlay" id="detection-overlay"></canvas>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Telemetry Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-tachometer-alt"></i> Telemetry</h3>
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Altitude</span>
+                            <span class="telemetry-value" id="altitude">0 m</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Speed</span>
+                            <span class="telemetry-value" id="speed">0 m/s</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Battery</span>
+                            <span class="telemetry-value" id="battery">100%</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Signal</span>
+                            <span class="telemetry-value" id="signal">Strong</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">GPS</span>
+                            <span class="telemetry-value" id="gps-coords">--</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Heading</span>
+                            <span class="telemetry-value" id="heading">0°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-map"></i> Tactical Map</h3>
+                    <div class="map-controls">
+                        <button class="map-btn active" onclick="setMapLayer('osm')" id="osm-btn">OSM</button>
+                        <button class="map-btn" onclick="setMapLayer('satellite')" id="sat-btn">Satellite</button>
+                        <button class="map-btn" onclick="setMapLayer('offline')" id="offline-btn">Offline</button>
+                        <button class="map-btn" onclick="toggleHeatmap()" id="heatmap-btn">Heatmap</button>
+                    </div>
+                    <div id="map"></div>
+                    
+                    <!-- Heatmap Controls -->
+                    <div class="heatmap-controls" id="heatmap-controls" style="display: none;">
+                        <label>Intensity: <span id="intensity-value">0.5</span></label>
+                        <input type="range" class="heatmap-slider" id="intensity-slider" min="0.1" max="1" step="0.1" value="0.5">
+                        <label>Radius: <span id="radius-value">25</span></label>
+                        <input type="range" class="heatmap-slider" id="radius-slider" min="10" max="50" step="5" value="25">
+                        <div class="heatmap-info" id="heatmap-info">0 detection points</div>
+                    </div>
+                </div>
+
+                <!-- Target Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-crosshairs"></i> Target Reference</h3>
+                    <div class="target-upload" onclick="document.getElementById('target-input').click()">
+                        <i class="fas fa-upload"></i>
+                        <p>Upload Target Image</p>
+                        <input type="file" id="target-input" accept="image/*" style="display: none;" onchange="handleTargetUpload(event)">
+                        <img id="target-preview" class="target-preview" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Detections Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-eye"></i> Detections & Tracking</h3>
+                    <div class="detection-list" id="detection-list">
+                        <!-- Detection items will be added here -->
+                    </div>
+                </div>
+
+                <!-- Export & Snapshot Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-camera"></i> Capture & Export</h3>
+                    <div class="export-controls">
+                        <button class="export-btn" onclick="takeSnapshot()">
+                            <i class="fas fa-camera"></i> Take Snapshot
+                        </button>
+                        <button class="export-btn" onclick="startRecording()" id="record-btn">
+                            <i class="fas fa-video"></i> Start Recording
+                        </button>
+                        <button class="export-btn" onclick="exportHandoffData()">
+                            <i class="fas fa-share-alt"></i> Export Handoff
+                        </button>
+                        <button class="export-btn" onclick="packageEvidence()">
+                            <i class="fas fa-archive"></i> Package Evidence
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Section -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-info-circle"></i> System Status</h3>
+                    <div>
+                        <span class="status-indicator status-disconnected" id="connection-status"></span>
+                        <span id="connection-text">Disconnected</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div style="font-size: 12px; color: #95a5a6;">Recording: <span id="recording-status">Stopped</span></div>
+                        <div style="font-size: 12px; color: #95a5a6;">Detections: <span id="detection-count">0</span></div>
+                        <div style="font-size: 12px; color: #95a5a6;">Locked Targets: <span id="locked-count">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Mission Data</h3>
+                <button class="modal-close" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div id="export-content">
+                <p>Select export options:</p>
+                <div style="margin: 20px 0;">
+                    <label><input type="checkbox" id="export-video" checked> Video Recording</label><br>
+                    <label><input type="checkbox" id="export-telemetry" checked> Telemetry Data</label><br>
+                    <label><input type="checkbox" id="export-detections" checked> Detection Log</label><br>
+                    <label><input type="checkbox" id="export-map" checked> Map Data</label><br>
+                    <label><input type="checkbox" id="export-snapshots" checked> Snapshots</label><br>
+                </div>
+                <button class="export-btn" onclick="startExport()">Start Export</button>
+                <div id="export-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="export-status">Preparing export...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script>
+        // Global variables
+        let map;
+        let sarInterface;
+        let isConnected = false;
+        let currentMode = 'regular';
+        let isRecording = false;
+        let heatmapLayer = null;
+        let heatmapData = [];
+        let detectionMarkers = [];
+        let offlineTileLayer = null;
+        let currentMapLayer = 'osm';
+        let detectionCount = 0;
+        let lockedCount = 0;
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            initializeSARInterface();
+            updateConnectionStatus();
+            setupHeatmapControls();
+        });
+        
+        // Initialize Leaflet map with multiple layers
+        function initializeMap() {
+            map = L.map('map').setView([37.7749, -122.4194], 13);
+            
+            // OSM Layer (default)
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            });
+            
+            // Satellite Layer
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© Esri'
+            });
+            
+            // Offline Layer (placeholder - would load from local tiles)
+            offlineTileLayer = L.tileLayer('offline-tiles/{z}/{x}/{y}.png', {
+                attribution: 'Offline Map Data'
+            });
+            
+            // Add default layer
+            osmLayer.addTo(map);
+            
+            // Store layers for switching
+            window.mapLayers = {
+                osm: osmLayer,
+                satellite: satelliteLayer,
+                offline: offlineTileLayer
+            };
+        }
+        
+        // Set map layer
+        function setMapLayer(layerType) {
+            // Remove all layers
+            Object.values(window.mapLayers).forEach(layer => {
+                map.removeLayer(layer);
+            });
+            
+            // Add selected layer
+            if (window.mapLayers[layerType]) {
+                window.mapLayers[layerType].addTo(map);
+                currentMapLayer = layerType;
+                
+                // Update button states
+                document.querySelectorAll('.map-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(layerType === 'osm' ? 'osm-btn' : 
+                                       layerType === 'satellite' ? 'sat-btn' : 'offline-btn').classList.add('active');
+            }
+        }
+        
+        // Toggle heatmap
+        function toggleHeatmap() {
+            const heatmapBtn = document.getElementById('heatmap-btn');
+            const heatmapControls = document.getElementById('heatmap-controls');
+            
+            if (heatmapLayer) {
+                map.removeLayer(heatmapLayer);
+                heatmapLayer = null;
+                heatmapBtn.classList.remove('active');
+                heatmapControls.style.display = 'none';
+            } else {
+                updateHeatmap();
+                heatmapBtn.classList.add('active');
+                heatmapControls.style.display = 'block';
+            }
+        }
+        
+        // Update heatmap with current data
+        function updateHeatmap() {
+            if (heatmapLayer) {
+                map.removeLayer(heatmapLayer);
+            }
+            
+            const intensity = parseFloat(document.getElementById('intensity-slider').value);
+            const radius = parseInt(document.getElementById('radius-slider').value);
+            
+            heatmapLayer = L.heatLayer(heatmapData, {
+                radius: radius,
+                blur: 15,
+                maxZoom: 17,
+                max: intensity
+            }).addTo(map);
+            
+            document.getElementById('heatmap-info').textContent = `${heatmapData.length} detection points`;
+        }
+        
+        // Setup heatmap controls
+        function setupHeatmapControls() {
+            const intensitySlider = document.getElementById('intensity-slider');
+            const radiusSlider = document.getElementById('radius-slider');
+            
+            intensitySlider.addEventListener('input', function() {
+                document.getElementById('intensity-value').textContent = this.value;
+                if (heatmapLayer) updateHeatmap();
+            });
+            
+            radiusSlider.addEventListener('input', function() {
+                document.getElementById('radius-value').textContent = this.value;
+                if (heatmapLayer) updateHeatmap();
+            });
+        }
+        
+        // Initialize SAR Interface
+        function initializeSARInterface() {
+            console.log('Initializing Enhanced SAR Interface...');
+            // This would connect to the backend SAR service
+        }
+        
+        // Header button functions
+        function toggleConnection() {
+            isConnected = !isConnected;
+            updateConnectionStatus();
+            console.log('Connection toggled:', isConnected);
+        }
+        
+        function startSystem() {
+            console.log('System started');
+            document.getElementById('start-btn').classList.add('active');
+        }
+        
+        function stopSystem() {
+            console.log('System stopped');
+            document.getElementById('start-btn').classList.remove('active');
+        }
+        
+        function changeMode(mode) {
+            currentMode = mode;
+            console.log('Mode changed to:', mode);
+        }
+        
+        function openSettings() {
+            console.log('Opening settings...');
+        }
+        
+        function closeApplication() {
+            if (window.electronAPI) {
+                window.electronAPI.closeApp();
+            } else {
+                window.close();
+            }
+        }
+        
+        // Update connection status
+        function updateConnectionStatus() {
+            const statusIndicator = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+            const connectBtn = document.getElementById('connect-btn');
+            
+            if (isConnected) {
+                statusIndicator.className = 'status-indicator status-connected';
+                statusText.textContent = 'Connected';
+                connectBtn.innerHTML = '<i class="fas fa-wifi"></i> Disconnect';
+                connectBtn.classList.add('active');
+            } else {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Disconnected';
+                connectBtn.innerHTML = '<i class="fas fa-wifi"></i> Connect';
+                connectBtn.classList.remove('active');
+            }
+        }
+        
+        // Handle target image upload
+        function handleTargetUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('target-preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Add detection to the list and map
+        function addDetection(detection) {
+            const detectionList = document.getElementById('detection-list');
+            const detectionItem = document.createElement('div');
+            detectionItem.className = 'detection-item';
+            detectionItem.id = `detection-${detection.id}`;
+            detectionItem.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div>${detection.type || 'Person'} detected</div>
+                        <div class="detection-confidence">${(detection.confidence * 100).toFixed(1)}%</div>
+                        <div style="font-size: 12px; color: #95a5a6;">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                    <div>
+                        <button onclick="lockTarget(${detection.id})" id="lock-btn-${detection.id}" style="background: #e74c3c; color: white; border: none; padding: 5px; border-radius: 3px; cursor: pointer;">
+                            <i class="fas fa-lock"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            detectionItem.onclick = function() {
+                if (detection.lat && detection.lng) {
+                    map.setView([detection.lat, detection.lng], 16);
+                }
+            };
+            
+            detectionList.insertBefore(detectionItem, detectionList.firstChild);
+            
+            // Add to map if coordinates available
+            if (detection.lat && detection.lng) {
+                const marker = L.marker([detection.lat, detection.lng])
+                    .bindPopup(`${detection.type || 'Person'} - ${(detection.confidence * 100).toFixed(1)}%`)
+                    .addTo(map);
+                detectionMarkers.push({id: detection.id, marker: marker});
+                
+                // Add to heatmap data
+                heatmapData.push([detection.lat, detection.lng, detection.confidence]);
+                if (heatmapLayer) updateHeatmap();
+            }
+            
+            // Update counts
+            detectionCount++;
+            document.getElementById('detection-count').textContent = detectionCount;
+            
+            // Keep only the last 20 detections
+            while (detectionList.children.length > 20) {
+                detectionList.removeChild(detectionList.lastChild);
+            }
+        }
+        
+        // Lock/unlock target
+        function lockTarget(detectionId) {
+            const detectionItem = document.getElementById(`detection-${detectionId}`);
+            const lockBtn = document.getElementById(`lock-btn-${detectionId}`);
+            
+            if (detectionItem.classList.contains('locked')) {
+                detectionItem.classList.remove('locked');
+                lockBtn.innerHTML = '<i class="fas fa-lock"></i>';
+                lockBtn.style.background = '#e74c3c';
+                lockedCount--;
+            } else {
+                detectionItem.classList.add('locked');
+                lockBtn.innerHTML = '<i class="fas fa-unlock"></i>';
+                lockBtn.style.background = '#27ae60';
+                lockedCount++;
+            }
+            
+            document.getElementById('locked-count').textContent = lockedCount;
+        }
+        
+        // Take snapshot
+        function takeSnapshot() {
+            const video = document.getElementById('video-feed');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `snapshot_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            
+            console.log('Snapshot taken');
+        }
+        
+        // Start/stop recording
+        function startRecording() {
+            const recordBtn = document.getElementById('record-btn');
+            const recordingStatus = document.getElementById('recording-status');
+            
+            if (!isRecording) {
+                isRecording = true;
+                recordBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
+                recordBtn.style.background = '#e74c3c';
+                recordingStatus.textContent = 'Recording';
+                recordingStatus.style.color = '#e74c3c';
+                console.log('Recording started');
+            } else {
+                isRecording = false;
+                recordBtn.innerHTML = '<i class="fas fa-video"></i> Start Recording';
+                recordBtn.style.background = '#8e44ad';
+                recordingStatus.textContent = 'Stopped';
+                recordingStatus.style.color = '#95a5a6';
+                console.log('Recording stopped');
+            }
+        }
+        
+        // Export handoff data
+        function exportHandoffData() {
+            const handoffData = {
+                timestamp: new Date().toISOString(),
+                mission_id: `mission_${Date.now()}`,
+                operator: 'SAR_Operator',
+                location: {
+                    lat: map.getCenter().lat,
+                    lng: map.getCenter().lng,
+                    zoom: map.getZoom()
+                },
+                detections: Array.from(document.querySelectorAll('.detection-item')).map((item, index) => ({
+                    id: index,
+                    type: 'person',
+                    confidence: Math.random(),
+                    locked: item.classList.contains('locked'),
+                    timestamp: new Date().toISOString()
+                })),
+                telemetry: {
+                    altitude: document.getElementById('altitude').textContent,
+                    speed: document.getElementById('speed').textContent,
+                    battery: document.getElementById('battery').textContent,
+                    signal: document.getElementById('signal').textContent
+                },
+                map_data: {
+                    layer: currentMapLayer,
+                    heatmap_enabled: heatmapLayer !== null,
+                    markers: detectionMarkers.length
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(handoffData, null, 2)], {type: 'application/json'});
+            const link = document.createElement('a');
+            link.download = `handoff_${handoffData.mission_id}.json`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            
+            console.log('Handoff data exported');
+        }
+        
+        // Package evidence
+        function packageEvidence() {
+            console.log('Packaging evidence...');
+            // This would create a comprehensive evidence package
+            alert('Evidence packaging initiated. This would create a secure package with video, metadata, and digital signatures.');
+        }
+        
+        // Export modal functions
+        function openExportModal() {
+            document.getElementById('export-modal').style.display = 'block';
+        }
+        
+        function closeExportModal() {
+            document.getElementById('export-modal').style.display = 'none';
+            document.getElementById('export-progress').style.display = 'none';
+        }
+        
+        function startExport() {
+            const progressDiv = document.getElementById('export-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const statusDiv = document.getElementById('export-status');
+            
+            progressDiv.style.display = 'block';
+            
+            // Simulate export progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    statusDiv.textContent = 'Export completed!';
+                    setTimeout(() => {
+                        closeExportModal();
+                    }, 2000);
+                }
+                
+                progressFill.style.width = progress + '%';
+                statusDiv.textContent = `Exporting... ${Math.round(progress)}%`;
+            }, 500);
+        }
+        
+        // Update telemetry data
+        function updateTelemetry(data) {
+            if (data.altitude !== undefined) {
+                document.getElementById('altitude').textContent = data.altitude + ' m';
+            }
+            if (data.speed !== undefined) {
+                document.getElementById('speed').textContent = data.speed + ' m/s';
+            }
+            if (data.battery !== undefined) {
+                document.getElementById('battery').textContent = data.battery + '%';
+            }
+            if (data.signal !== undefined) {
+                document.getElementById('signal').textContent = data.signal;
+            }
+            if (data.gps !== undefined) {
+                document.getElementById('gps-coords').textContent = `${data.gps.lat.toFixed(6)}, ${data.gps.lng.toFixed(6)}`;
+            }
+            if (data.heading !== undefined) {
+                document.getElementById('heading').textContent = data.heading + '°';
+            }
+        }
+        
+        // Demo function to add sample detections
+        function addSampleDetection() {
+            const sampleDetection = {
+                id: Date.now(),
+                type: 'Person',
+                confidence: 0.85 + Math.random() * 0.15,
+                lat: 37.7749 + (Math.random() - 0.5) * 0.01,
+                lng: -122.4194 + (Math.random() - 0.5) * 0.01
+            };
+            addDetection(sampleDetection);
+        }
+        
+        // Demo: Add sample detections every 5 seconds when connected
+        setInterval(() => {
+            if (isConnected) {
+                addSampleDetection();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

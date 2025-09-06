@@ -1,246 +1,353 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-import cv2
-import numpy as np
-import pytesseract
-import loguru
-from PIL import ImageGrab
-import time
-import mss
-import threading
-from typing import Optional
-from pydantic import BaseModel
+#!/usr/bin/env python3
+"""
+Foresight SAR System - Main Entry Point
 
-# Ultralytics YOLO (pip install ultralytics)
+A CLI entry point that checks environment, prints hardware status,
+and provides simulation mode for development and CI.
+"""
+
+import argparse
+import sys
+import os
+import platform
+import subprocess
+from pathlib import Path
+from typing import Optional
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+
+try:
+    import cv2
+    import numpy as np
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
+    cv2 = None
+    np = None
+
 try:
     from ultralytics import YOLO
-except Exception as e:
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
     YOLO = None
-    print("Ultralytics not available:", e)
 
-RTSP_URL = "rtsp://127.0.0.1:8554/scrcpy"
 
-# -----------------------------
-# App + CORS setup
-# -----------------------------
-app = FastAPI()
+def check_environment():
+    """Check system environment and dependencies."""
+    print("🔍 Foresight SAR System - Environment Check")
+    print("=" * 50)
+    
+    # System info
+    print(f"📱 Platform: {platform.system()} {platform.release()}")
+    print(f"🐍 Python: {sys.version.split()[0]}")
+    print(f"📁 Working Directory: {os.getcwd()}")
+    
+    # Check Python version
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8+ required")
+        return False
+    else:
+        print("✅ Python version OK")
+    
+    # Check dependencies
+    deps_ok = True
+    
+    if TORCH_AVAILABLE:
+        print(f"✅ PyTorch: {torch.__version__}")
+    else:
+        print("❌ PyTorch not available")
+        deps_ok = False
+    
+    if OPENCV_AVAILABLE:
+        print(f"✅ OpenCV: {cv2.__version__}")
+    else:
+        print("❌ OpenCV not available")
+        deps_ok = False
+    
+    if YOLO_AVAILABLE:
+        print("✅ Ultralytics YOLO available")
+    else:
+        print("❌ Ultralytics YOLO not available")
+        deps_ok = False
+    
+    # Check environment file
+    env_file = Path(".env")
+    if env_file.exists():
+        print("✅ .env file found")
+    else:
+        print("⚠️  .env file not found (using defaults)")
+    
+    # Check model files
+    models_dir = Path("models")
+    if models_dir.exists() and any(models_dir.glob("*.pt")):
+        model_files = list(models_dir.glob("*.pt"))
+        print(f"✅ Found {len(model_files)} model file(s)")
+        for model in model_files[:3]:  # Show first 3
+            print(f"   📦 {model.name}")
+    else:
+        print("⚠️  No model files found in models/ directory")
+    
+    return deps_ok
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],   # allow all origins (frontend on :5173 can connect)
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-logger = loguru.logger
-
-# -----------------------------
-# Shared state
-# -----------------------------
-state = {
-    "heading": 0,
-    "home": {"lat": 6.1164, "lon": 125.1716}
-}
-
-# -----------------------------
-# YOLO Detector Class
-# -----------------------------
-class ToggleReq(BaseModel):
-    enabled: bool
-
-class Detector:
-    def __init__(self, rtsp: str):
-        self.rtsp = rtsp
-        self.cap: Optional[cv2.VideoCapture] = None
-        self.running = False
-        self.sar_enabled = True
-        self.lock_enabled = False
-        self.last_jpeg = None
-        self.lock = threading.Lock()
-        self.model = YOLO("yolov8n.pt") if YOLO else None
-
-    def annotate(self, frame, results):
-        # draw simple boxes & labels
-        for r in results:
-            boxes = r.boxes
-            if boxes is None:
-                continue
-            for b in boxes:
-                c = int(b.cls)
-                conf = float(b.conf)
-                x1, y1, x2, y2 = map(int, b.xyxy[0])
-                label = f"{self.model.names.get(c,'?')} {conf:.2f}"
-                # If suspect lock is on, you might filter class/person etc. For now, draw all.
-                cv2.rectangle(frame, (x1,y1), (x2,y2), (0,255,0), 2)
-                cv2.putText(frame, label, (x1, max(y1-6, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-        return frame
-
-    def loop(self):
-        self.cap = cv2.VideoCapture(self.rtsp, cv2.CAP_FFMPEG)
-        # small open retry loop
-        open_deadline = time.time() + 10
-        while self.cap is None or not self.cap.isOpened():
-            if time.time() > open_deadline:
-                print("Failed to open RTSP within 10s")
-                break
-            print("Waiting for RTSP...")
-            time.sleep(1)
-            self.cap = cv2.VideoCapture(self.rtsp, cv2.CAP_FFMPEG)
-
-        while self.running and self.cap and self.cap.isOpened():
-            ok, frame = self.cap.read()
-            if not ok:
-                time.sleep(0.02)
-                continue
-
-            # If SAR disabled → passthrough only
-            if self.sar_enabled and self.model is not None:
-                results = self.model.predict(source=frame, imgsz=640, conf=0.25, verbose=False)
-                frame = self.annotate(frame, results)
-                # (Optional) apply "suspect lock" heuristic here
-
-            # encode to jpeg for MJPEG output
-            ok, jpeg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            if ok:
-                with self.lock:
-                    self.last_jpeg = jpeg.tobytes()
-            else:
-                time.sleep(0.01)
-
-        if self.cap:
-            self.cap.release()
-
-    def start(self):
-        if self.running:
-            return
-        self.running = True
-        t = threading.Thread(target=self.loop, daemon=True)
-        t.start()
-
-    def stop(self):
-        self.running = False
-
-det = Detector(RTSP_URL)
-
-@app.on_event("startup")
-def on_start():
-    det.start()
-
-@app.on_event("shutdown")
-def on_stop():
-    det.stop()
-
-# -----------------------------
-# Health check
-# -----------------------------
-@app.get("/")
-def root():
-    return {"status": "server is running", "message": "Welcome to foresight!"}
-
-# -----------------------------
-# YOLO Toggle Routes
-# -----------------------------
-@app.get("/state")
-def get_state():
-    return {"sar": det.sar_enabled, "lock": det.lock_enabled}
-
-@app.post("/toggle/sar")
-def toggle_sar(req: ToggleReq):
-    det.sar_enabled = bool(req.enabled)
-    return {"sar": det.sar_enabled}
-
-@app.post("/toggle/lock")
-def toggle_lock(req: ToggleReq):
-    det.lock_enabled = bool(req.enabled)
-    return {"lock": det.lock_enabled}
-
-@app.get("/video.mjpg")
-def video_mjpeg():
-    boundary = "frame"
-    def gen():
-        while True:
-            with det.lock:
-                jpeg = det.last_jpeg
-            if jpeg is not None:
-                yield (b"--" + boundary.encode() + b"\r\n"
-                       b"Content-Type: image/jpeg\r\n"
-                       b"Content-Length: " + str(len(jpeg)).encode() + b"\r\n\r\n"
-                       + jpeg + b"\r\n")
-            else:
-                time.sleep(0.02)
-    return StreamingResponse(gen(), media_type=f"multipart/x-mixed-replace; boundary={boundary}")
-
-# -----------------------------
-# Your existing OCR routes
-# -----------------------------
-@app.get("/capture")
-def capture_screen():
+def check_hardware():
+    """Check hardware capabilities."""
+    print("\n🖥️  Hardware Status")
+    print("=" * 50)
+    
+    # CPU info
     try:
-        img = ImageGrab.grab()  # grab full screen
-        frame = np.array(img)
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        text = pytesseract.image_to_string(gray)
-        return {"captured_text": text.strip()}
-    except Exception as e:
-        logger.error(f"Error during capture: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.get("/camera")
-def capture_camera():
+        import psutil
+        cpu_count = psutil.cpu_count()
+        memory = psutil.virtual_memory()
+        print(f"🔧 CPU Cores: {cpu_count}")
+        print(f"💾 RAM: {memory.total // (1024**3):.1f} GB ({memory.percent}% used)")
+    except ImportError:
+        print("⚠️  psutil not available for detailed system info")
+    
+    # GPU info
+    if TORCH_AVAILABLE:
+        if torch.cuda.is_available():
+            gpu_count = torch.cuda.device_count()
+            print(f"🎮 CUDA GPUs: {gpu_count}")
+            for i in range(gpu_count):
+                gpu_name = torch.cuda.get_device_name(i)
+                gpu_memory = torch.cuda.get_device_properties(i).total_memory
+                print(f"   GPU {i}: {gpu_name} ({gpu_memory // (1024**3):.1f} GB)")
+        else:
+            print("❌ CUDA not available")
+    
+    # Camera check
+    if OPENCV_AVAILABLE:
+        try:
+            cap = cv2.VideoCapture(0)
+            if cap.isOpened():
+                print("✅ Default camera accessible")
+                cap.release()
+            else:
+                print("❌ Default camera not accessible")
+        except Exception as e:
+            print(f"❌ Camera check failed: {e}")
+    
+    # Disk space
     try:
-        cap = cv2.VideoCapture(0)
-        ret, frame = cap.read()
-        cap.release()
-
-        if not ret:
-            return JSONResponse(status_code=500, content={"error": "Camera not available"})
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        text = pytesseract.image_to_string(gray)
-        return {"camera_text": text.strip()}
-
+        import shutil
+        total, used, free = shutil.disk_usage(".")
+        print(f"💽 Disk Space: {free // (1024**3):.1f} GB free / {total // (1024**3):.1f} GB total")
     except Exception as e:
-        logger.error(f"Camera error: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        print(f"⚠️  Disk space check failed: {e}")
 
-@app.get("/geolocate")
-def geolocate_example():
-    return {
-        "lat": state["home"]["lat"],
-        "lon": state["home"]["lon"],
-        "confidence": "placeholder"
-    }
 
-@app.post("/heading")
-async def set_heading(req: Request):
-    data = await req.json()
-    state["heading"] = data.get("heading", 0)
-    return {"ok": True, "heading": state["heading"]}
+def run_simulation_mode():
+    """Run system in simulation mode with test data."""
+    print("\n🎭 Starting Simulation Mode")
+    print("=" * 50)
+    
+    # Check for test data
+    test_files = [
+        "data/samples/test_video.mp4",
+        "data/samples/sample_image.jpg",
+        "stream.mp4"  # Legacy test file
+    ]
+    
+    available_files = [f for f in test_files if Path(f).exists()]
+    
+    if not available_files:
+        print("⚠️  No test files found. Creating synthetic test data...")
+        create_synthetic_test_data()
+        available_files = ["data/samples/synthetic_test.mp4"]
+    else:
+        print(f"✅ Found {len(available_files)} test file(s):")
+        for file in available_files:
+            print(f"   📹 {file}")
+    
+    # Set simulation environment variables
+    os.environ["FORESIGHT_SIMULATION_MODE"] = "true"
+    os.environ["FORESIGHT_TEST_DATA_PATH"] = str(Path(available_files[0]).parent if available_files else "data/samples")
+    
+    print("\n🚀 Launching SAR system in simulation mode...")
+    
+    # Import and run the actual SAR service
+    try:
+        import uvicorn
+        from src.backend.sar_service import app
+        print("✅ Starting SAR service...")
+        uvicorn.run(app, host="0.0.0.0", port=8004, log_level="info")
+    except ImportError as e:
+        print(f"❌ Could not import SAR service: {e}")
+        print("❌ Running legacy server...")
+        run_legacy_server()
 
-@app.post("/home")
-async def set_home(req: Request):
-    data = await req.json()
-    state["home"] = {"lat": data.get("lat", 0), "lon": data.get("lon", 0)}
-    return {"ok": True, "home": state["home"]}
 
-@app.get("/mjpg")
-def mjpg_stream():
-    def generate():
-        with mss.mss() as sct:
-            monitor = sct.monitors[1]  # capture primary monitor
-            while True:
-                img = np.array(sct.grab(monitor))
-                frame = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+def create_synthetic_test_data():
+    """Create synthetic test data for simulation."""
+    if not OPENCV_AVAILABLE:
+        print("❌ OpenCV required for synthetic data generation")
+        return
+    
+    # Create data directory
+    data_dir = Path("data/samples")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate a simple test video
+    output_path = data_dir / "synthetic_test.mp4"
+    
+    print(f"📹 Generating synthetic test video: {output_path}")
+    
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(str(output_path), fourcc, 10.0, (640, 480))
+    
+    for i in range(100):  # 10 seconds at 10 FPS
+        # Create a simple moving rectangle (simulating a person)
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        x = int(50 + (i * 5) % 540)
+        y = int(200 + 50 * np.sin(i * 0.1))
+        cv2.rectangle(frame, (x, y), (x+50, y+100), (0, 255, 0), -1)
+        cv2.putText(frame, f"Frame {i}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        out.write(frame)
+    
+    out.release()
+    print("✅ Synthetic test data created")
 
-                ret, jpeg = cv2.imencode(".jpg", frame)
-                if not ret:
-                    continue
 
-                yield (b"--frame\r\n"
-                       b"Content-Type: image/jpeg\r\n\r\n" + jpeg.tobytes() + b"\r\n")
-                time.sleep(0.1)
+def run_legacy_server():
+    """Run the legacy FastAPI server from the original main.py."""
+    print("🌐 Starting legacy web server...")
+    
+    # Import the legacy server components
+    import uvicorn
+    from fastapi import FastAPI, Request
+    from fastapi.responses import JSONResponse, StreamingResponse
+    from fastapi.middleware.cors import CORSMiddleware
+    
+    app = FastAPI(title="Foresight SAR System", version="1.0.0")
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    @app.get("/")
+    def root():
+        return {"message": "Foresight SAR System - Simulation Mode", "mode": "simulation"}
+    
+    @app.get("/health")
+    def health_check():
+        return {"status": "healthy", "mode": "simulation"}
+    
+    print("🚀 Server starting on http://localhost:8004")
+    print("📖 API docs available at http://localhost:8004/docs")
+    
+    uvicorn.run(app, host="0.0.0.0", port=8004)
 
-    print("🚀 DESKTOP CAPTURE VERSION LOADED")
-    return StreamingResponse(generate(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+def run_production_mode():
+    """Run the full production SAR system."""
+    print("\n🚀 Starting Production Mode")
+    print("=" * 50)
+    
+    try:
+        import uvicorn
+        from src.backend.sar_service import app
+        print("✅ Starting SAR service...")
+        uvicorn.run(app, host="0.0.0.0", port=8004, log_level="info")
+    except ImportError as e:
+        print(f"❌ Could not import SAR service: {e}")
+        print("💡 Try running: pip install -r requirements.txt")
+        sys.exit(1)
+
+
+def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="Foresight SAR System - AI-Powered Search and Rescue",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py --check          # Check environment and hardware
+  python main.py --simulate       # Run with test data
+  python main.py --test-mode      # Run tests
+  python main.py                  # Start production system
+
+For more information, visit: https://github.com/Hiko318/foresight
+        """
+    )
+    
+    parser.add_argument(
+        "--check", 
+        action="store_true", 
+        help="Check environment and hardware status"
+    )
+    
+    parser.add_argument(
+        "--simulate", 
+        action="store_true", 
+        help="Run in simulation mode with test data"
+    )
+    
+    parser.add_argument(
+        "--test-mode", 
+        action="store_true", 
+        help="Run system tests"
+    )
+    
+    parser.add_argument(
+        "--version", 
+        action="version", 
+        version="Foresight SAR System v1.0.0"
+    )
+    
+    args = parser.parse_args()
+    
+    # Always check environment first
+    env_ok = check_environment()
+    
+    if args.check:
+        check_hardware()
+        if env_ok:
+            print("\n✅ System ready for deployment")
+        else:
+            print("\n❌ System has dependency issues")
+            sys.exit(1)
+        return
+    
+    if args.test_mode:
+        print("\n🧪 Running system tests...")
+        try:
+            subprocess.run([sys.executable, "-m", "pytest", "tests/", "-v"], check=True)
+            print("✅ All tests passed")
+        except subprocess.CalledProcessError:
+            print("❌ Some tests failed")
+            sys.exit(1)
+        except FileNotFoundError:
+            print("❌ pytest not found. Install with: pip install pytest")
+            sys.exit(1)
+        return
+    
+    if args.simulate:
+        if not env_ok:
+            print("⚠️  Running simulation mode with missing dependencies")
+        run_simulation_mode()
+        return
+    
+    # Default: run production mode
+    if not env_ok:
+        print("❌ Cannot start production mode with missing dependencies")
+        print("💡 Run 'python main.py --check' for details")
+        sys.exit(1)
+    
+    check_hardware()
+    run_production_mode()
+
+
+if __name__ == "__main__":
+    main()
