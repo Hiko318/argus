@@ -10,11 +10,17 @@ Foresight is an advanced Search and Rescue (SAR) system that combines computer v
 
 ## 🎯 Project Purpose
 
+Foresight is part of the **F.O.R.E.S.I.G.H.T** (Field Operations for Rescue, Emergency Search, Intelligence Gathering, and Human Tracking) master plan - a comprehensive AI-powered search and rescue ecosystem designed to save lives through advanced technology.
+
+### Core Capabilities
 - **Real-Time Human Detection**: YOLO-based AI models optimized for aerial and ground-based search scenarios
 - **Geolocation Integration**: Precise GPS coordinate mapping with terrain intersection analysis
 - **Evidence Management**: Automated capture, annotation, and export of detection evidence
 - **Multi-Platform Support**: Desktop application, web interface, and mobile compatibility
 - **Field-Ready Deployment**: Designed for use in remote locations with offline capabilities
+
+### Mission Statement
+To provide search and rescue teams with cutting-edge AI technology that enhances their ability to locate missing persons quickly and efficiently, ultimately saving lives in critical situations.
 
 ## 🛠️ Hardware Targets
 
@@ -214,14 +220,27 @@ MAPBOX_ACCESS_TOKEN=your_mapbox_token
 ```
 
 ### Model Configuration
+
+**Model Storage**: Pre-trained models are stored in GitHub Releases and Git LFS due to their size. The `models/` directory contains configuration placeholders and download scripts.
+
 ```bash
-# Download pre-trained models
+# Download pre-trained models from releases
 python models/download_models.py
+
+# List available models
+python models/download_models.py --list
 
 # Use custom trained model
 cp your_model.pt models/
 # Update detection_pipeline.py model path
 ```
+
+**Available Models**:
+- `yolov8n.pt` - Nano model (6.2MB) - Fast inference, basic accuracy
+- `yolov8s.pt` - Small model (21.5MB) - Balanced speed/accuracy
+- `yolov8m.pt` - Medium model (49.7MB) - Higher accuracy, slower inference
+
+**Model Releases**: Check [GitHub Releases](https://github.com/Hiko318/foresight/releases) for the latest trained models and performance benchmarks.
 
 ## 🧪 Testing & Development
 

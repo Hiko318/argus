@@ -1,0 +1,56 @@
+# Development Dockerfile for Foresight SAR System
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgstreamer1.0-0 \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for Electron app
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+COPY requirements-dev.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir -r requirements-dev.txt
+
+# Copy application code
+COPY . .
+
+# Install Electron dependencies
+RUN cd foresight-electron && npm install
+
+# Create directories for data and models
+RUN mkdir -p data/training data/samples models/cache
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV SAR_SERVICE_PORT=8004
+ENV ENABLE_GPU=false
+
+# Expose ports
+EXPOSE 8004 3000
+
+# Default command
+CMD ["python", "src/backend/main.py"]

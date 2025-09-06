@@ -1,0 +1,277 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy bandit safety
+        pip install -r requirements.txt
+    
+    - name: Run static checks
+      run: |
+        black --check src/ training/ tools/
+        isort --check-only src/ training/ tools/
+        flake8 src/ training/ tools/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        mypy src/ --ignore-missing-imports
+        bandit -r src/ training/ tools/
+        safety check
+
+  build-python:
+    runs-on: ubuntu-latest
+    needs: static-checks
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build wheel setuptools
+        pip install -r requirements.txt
+    
+    - name: Build Python package
+      run: |
+        python -m build
+    
+    - name: Upload Python artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package
+        path: dist/
+
+  build-electron:
+    runs-on: ${{ matrix.os }}
+    needs: static-checks
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: foresight-electron/package-lock.json
+    
+    - name: Install Electron dependencies
+      run: |
+        cd foresight-electron
+        npm ci
+    
+    - name: Build Electron app
+      run: |
+        cd foresight-electron
+        npm run build
+    
+    - name: Package Electron app
+      run: |
+        cd foresight-electron
+        npm run package
+    
+    - name: Upload Electron artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: electron-${{ matrix.os }}
+        path: foresight-electron/dist/
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: static-checks
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+    
+    - name: Build and push Docker image (dev)
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/Dockerfile.dev
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}-dev
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push Docker image (jetson)
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/Dockerfile.jetson
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}-jetson
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  generate-sbom:
+    runs-on: ubuntu-latest
+    needs: [build-python, build-electron]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install SBOM tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install cyclonedx-bom pip-audit
+        pip install -r requirements.txt
+    
+    - name: Generate Python SBOM
+      run: |
+        cyclonedx-py -o foresight-python-sbom.json
+        pip-audit --format=json --output=foresight-audit.json
+    
+    - name: Upload SBOM artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom-reports
+        path: |
+          foresight-python-sbom.json
+          foresight-audit.json
+
+  upload-model-metadata:
+    runs-on: ubuntu-latest
+    needs: static-checks
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate model metadata
+      run: |
+        python tools/generate_model_metadata.py --output model-metadata.json
+    
+    - name: Upload model metadata to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./model-metadata.json
+        asset_name: model-metadata.json
+        asset_content_type: application/json
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-python, build-electron, build-docker, generate-sbom]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Extract version from tag
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Generate changelog from commits
+        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD > RELEASE_CHANGELOG.md
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.changelog.outputs.version }}
+        release_name: Foresight SAR ${{ steps.changelog.outputs.version }}
+        body_path: RELEASE_CHANGELOG.md
+        draft: false
+        prerelease: ${{ contains(steps.changelog.outputs.version, '-') }}
+    
+    - name: Upload release assets
+      run: |
+        # Upload Python package
+        gh release upload ${{ steps.changelog.outputs.version }} python-package/*
+        
+        # Upload Electron apps
+        gh release upload ${{ steps.changelog.outputs.version }} electron-*/*
+        
+        # Upload SBOM reports
+        gh release upload ${{ steps.changelog.outputs.version }} sbom-reports/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

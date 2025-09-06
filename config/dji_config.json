@@ -1,0 +1,124 @@
+{
+  "dji_connection": {
+    "live_stream": {
+      "rtmp_url": "rtmp://192.168.1.100:1935/live/stream",
+      "telemetry_port": 8080,
+      "connection_timeout": 10.0,
+      "retry_attempts": 3,
+      "retry_delay": 2.0,
+      "buffer_size": 1,
+      "target_fps": 30,
+      "video_codec": "h264",
+      "audio_enabled": false
+    },
+    "recorded_data": {
+      "video_path": "data/recordings/test_flight.mp4",
+      "telemetry_path": "data/recordings/test_telemetry.json",
+      "playback_speed": 1.0,
+      "loop": true,
+      "start_frame": 0,
+      "end_frame": null
+    },
+    "sdk_settings": {
+      "app_key": "YOUR_DJI_APP_KEY",
+      "app_secret": "YOUR_DJI_APP_SECRET",
+      "bridge_ip": "192.168.1.100",
+      "bridge_port": 8080,
+      "debug_mode": true,
+      "log_level": "INFO"
+    },
+    "camera_settings": {
+      "resolution": {
+        "width": 1920,
+        "height": 1080
+      },
+      "frame_rate": 30,
+      "bitrate": 8000,
+      "iso_range": [100, 3200],
+      "shutter_speed_range": ["1/8000", "8"],
+      "aperture_range": ["f/1.7", "f/11"]
+    },
+    "telemetry_settings": {
+      "update_frequency": 30,
+      "precision": {
+        "gps": 6,
+        "altitude": 1,
+        "attitude": 2,
+        "velocity": 2
+      },
+      "filters": {
+        "gps_accuracy_threshold": 5.0,
+        "altitude_smoothing": true,
+        "attitude_smoothing": true
+      }
+    },
+    "safety_settings": {
+      "max_altitude": 120.0,
+      "max_distance": 500.0,
+      "low_battery_threshold": 20,
+      "signal_strength_threshold": 30,
+      "auto_return_home": true,
+      "emergency_landing": true
+    },
+    "recording_settings": {
+      "auto_record": true,
+      "record_telemetry": true,
+      "storage_path": "data/recordings",
+      "max_file_size_mb": 2048,
+      "compression_quality": 0.8,
+      "metadata_format": "json"
+    }
+  },
+  "stream_profiles": {
+    "high_quality": {
+      "resolution": [1920, 1080],
+      "fps": 30,
+      "bitrate": 8000,
+      "codec": "h264"
+    },
+    "medium_quality": {
+      "resolution": [1280, 720],
+      "fps": 30,
+      "bitrate": 4000,
+      "codec": "h264"
+    },
+    "low_latency": {
+      "resolution": [640, 480],
+      "fps": 60,
+      "bitrate": 2000,
+      "codec": "h264"
+    },
+    "battery_saver": {
+      "resolution": [640, 480],
+      "fps": 15,
+      "bitrate": 1000,
+      "codec": "h264"
+    }
+  },
+  "mission_profiles": {
+    "search_and_rescue": {
+      "altitude": 50.0,
+      "speed": 5.0,
+      "gimbal_pitch": -45.0,
+      "camera_mode": "video",
+      "recording": true,
+      "telemetry_logging": true
+    },
+    "surveillance": {
+      "altitude": 80.0,
+      "speed": 3.0,
+      "gimbal_pitch": -60.0,
+      "camera_mode": "video",
+      "recording": true,
+      "telemetry_logging": true
+    },
+    "mapping": {
+      "altitude": 100.0,
+      "speed": 8.0,
+      "gimbal_pitch": -90.0,
+      "camera_mode": "photo",
+      "recording": false,
+      "telemetry_logging": true
+    }
+  }
+}
