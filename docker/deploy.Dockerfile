@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Production stage
-FROM nvidia/cuda:11.8-runtime-ubuntu22.04 as production
+FROM nvidia/cuda:13.0.0-runtime-ubuntu22.04 as production
 
 # Metadata
 LABEL maintainer="Foresight SAR Team"
