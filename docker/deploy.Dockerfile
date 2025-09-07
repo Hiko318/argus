@@ -3,7 +3,7 @@
 # Supports both CPU and GPU inference with CUDA/TensorRT
 
 # Build stage
-FROM python:3.10-slim as builder
+FROM python:3.13-slim as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
