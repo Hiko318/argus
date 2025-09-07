@@ -1,0 +1,311 @@
+name: Foresight SAR CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18'
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: security-scan
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: foresight_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        run: |
+          cd ui
+          npm ci
+
+      - name: Create test environment file
+        run: |
+          cat > .env.test << EOF
+          DATABASE_URL=postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/foresight_test
+          REDIS_URL=redis://localhost:6379
+          LOG_LEVEL=DEBUG
+          DEVELOPMENT=true
+          DEBUG=true
+          MOCK_DRONE_DATA=true
+          VAULT_ADDR=${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}
+          EOF
+
+      - name: Run Python tests
+        env:
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/foresight_test
+          REDIS_URL: redis://localhost:6379
+        run: |
+          python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+
+      - name: Run UI tests
+        run: |
+          cd ui
+          npm test
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          cd ui && npm ci
+
+      - name: Build UI
+        run: |
+          cd ui
+          npm run build
+
+      - name: Build Python package
+        run: |
+          python -m pip install build
+          python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            ui/dist/
+
+  sign-and-timestamp:
+    name: Sign and Timestamp Evidence
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install OpenTimestamps
+        run: |
+          pip install opentimestamps-client
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Create evidence package
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          EVIDENCE_PRIVATE_KEY_PATH: ${{ secrets.EVIDENCE_PRIVATE_KEY_PATH }}
+          KEY_PASSPHRASE: ${{ secrets.KEY_PASSPHRASE }}
+        run: |
+          python tools/evidence_packager.py \
+            --source dist/ \
+            --output evidence-package-${{ github.ref_name }}.zip \
+            --metadata '{"version": "${{ github.ref_name }}", "commit": "${{ github.sha }}", "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}' \
+            --use-vault \
+            --create-timestamps
+
+      - name: Upload signed evidence package
+        uses: actions/upload-artifact@v3
+        with:
+          name: signed-evidence-package
+          path: |
+            evidence-package-${{ github.ref_name }}.zip
+            evidence-package-${{ github.ref_name }}.zip.ots
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, sign-and-timestamp]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+
+      - name: Deploy to staging server
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+        run: |
+          echo "Deploying to staging environment..."
+          # Add actual deployment commands here
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, sign-and-timestamp]
+    if: github.event_name == 'release'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download signed evidence package
+        uses: actions/download-artifact@v3
+        with:
+          name: signed-evidence-package
+
+      - name: Verify evidence package
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        run: |
+          python tools/evidence_packager.py \
+            --verify evidence-package-${{ github.ref_name }}.zip
+
+      - name: Deploy to production
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+        run: |
+          echo "Deploying to production environment..."
+          # Add actual deployment commands here
+
+  notify:
+    name: Notify Teams
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+      - name: Notify Slack
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+
+      - name: Notify Teams
+        if: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        uses: skitionek/notify-microsoft-teams@master
+        with:
+          webhook_url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          needs: ${{ toJson(needs) }}
+          job: ${{ toJson(job) }}
+          steps: ${{ toJson(steps) }}

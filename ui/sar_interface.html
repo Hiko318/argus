@@ -48,6 +48,12 @@
                 </video>
                 <div class="video-overlay" id="video-overlay">
                     <!-- Detection overlays will be added here -->
+                    <div class="flag-lock-controls">
+                        <button class="flag-lock-btn" id="flag-lock-btn" onclick="flagLockCapture()">
+                            <i class="fas fa-flag"></i>
+                            <span>FLAG/LOCK</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="video-hud">
                     <div class="hud-item">FPS: <span id="fps-display">12.2</span></div>
@@ -161,6 +167,129 @@
                 <div class="status-item">Disk: 73%</div>
                 <div class="status-item">Model: yolo_sar_n.onnx</div>
                 <div class="status-item">Telemetry: OCR (conf 0.84)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flag/Lock Handoff Modal -->
+    <div class="modal" id="flag-lock-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Evidence Capture - Handoff</h3>
+                <button class="close-modal-btn" onclick="closeFlagLockModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="capture-info">
+                    <div class="capture-preview">
+                        <img id="capture-preview-img" src="" alt="Captured frame" />
+                    </div>
+                    <div class="capture-metadata">
+                        <div class="metadata-item">
+                            <span class="label">Timestamp:</span>
+                            <span class="value" id="capture-timestamp">-</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Location:</span>
+                            <span class="value" id="capture-location">-</span>
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Operator ID:</span>
+                            <input type="text" id="operator-id" placeholder="Enter operator ID" />
+                        </div>
+                        <div class="metadata-item">
+                            <span class="label">Notes:</span>
+                            <textarea id="capture-notes" placeholder="Additional notes..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="export-controls">
+                    <button class="btn-secondary" onclick="exportAsCSV()">Export CSV</button>
+                    <button class="btn-secondary" onclick="exportAsJSON()">Export JSON</button>
+                    <button class="btn-primary" onclick="packageEvidence()">Package Evidence</button>
+                    <button class="btn-warning" onclick="openRetrainModal()">Flag for Retrain</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Retrain Modal -->
+    <div class="modal" id="retrain-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Flag Scene for Retraining</h3>
+                <button class="close-modal-btn" onclick="closeRetrainModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="retrain-form">
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label for="flag-reason">Reason for Flagging:</label>
+                            <select id="flag-reason" class="form-control">
+                                <option value="low_confidence">Low Confidence</option>
+                                <option value="false_positive">False Positive</option>
+                                <option value="false_negative">False Negative</option>
+                                <option value="operator_correction">Operator Correction</option>
+                                <option value="new_scenario">New Scenario</option>
+                                <option value="edge_case">Edge Case</option>
+                                <option value="poor_weather">Poor Weather</option>
+                                <option value="unusual_terrain">Unusual Terrain</option>
+                                <option value="equipment_issue">Equipment Issue</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="predicted-class">Current Prediction:</label>
+                            <input type="text" id="predicted-class" class="form-control" placeholder="e.g., person, vehicle, debris" />
+                        </div>
+                        <div class="form-group">
+                            <label for="corrected-class">Correct Classification:</label>
+                            <input type="text" id="corrected-class" class="form-control" placeholder="What should this be classified as?" />
+                        </div>
+                        <div class="form-group">
+                            <label for="confidence-score">Confidence Score:</label>
+                            <input type="number" id="confidence-score" class="form-control" min="0" max="1" step="0.01" placeholder="0.75" />
+                        </div>
+                        <div class="form-group">
+                            <label for="priority-level">Priority Level:</label>
+                            <select id="priority-level" class="form-control">
+                                <option value="1">1 - Low</option>
+                                <option value="2">2 - Below Normal</option>
+                                <option value="3" selected>3 - Normal</option>
+                                <option value="4">4 - High</option>
+                                <option value="5">5 - Critical</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="retrain-notes">Additional Notes:</label>
+                            <textarea id="retrain-notes" class="form-control" rows="3" placeholder="Describe the issue or provide additional context..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <h4>Scene Information</h4>
+                        <div class="scene-info">
+                            <div class="info-item">
+                                <span class="label">Scene ID:</span>
+                                <span class="value" id="retrain-scene-id">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Timestamp:</span>
+                                <span class="value" id="retrain-timestamp">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Location:</span>
+                                <span class="value" id="retrain-location">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Operator:</span>
+                                <input type="text" id="retrain-operator-id" class="form-control" placeholder="Enter your operator ID" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="retrain-controls">
+                    <button class="btn-secondary" onclick="closeRetrainModal()">Cancel</button>
+                    <button class="btn-primary" onclick="submitRetrainFlag()">Flag for Retraining</button>
+                </div>
             </div>
         </div>
     </div>

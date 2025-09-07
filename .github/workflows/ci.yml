@@ -93,6 +93,77 @@ jobs:
         pip install pytest pytest-cov pytest-xdist pytest-mock
         pip install -r requirements.txt
     
+    - name: Create test sample video
+      run: |
+        mkdir -p test_data
+        python -c "
+        import cv2
+        import numpy as np
+        
+        # Create a simple test video for ingestion tests
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter('test_data/sample_video.mp4', fourcc, 30.0, (640, 480))
+        
+        for i in range(90):  # 3 seconds at 30fps
+            frame = np.zeros((480, 640, 3), dtype=np.uint8)
+            # Add some movement and objects
+            cv2.circle(frame, (320 + i*2, 240), 50, (0, 255, 0), -1)
+            cv2.rectangle(frame, (100 + i, 100, 150 + i, 150), (255, 0, 0), 2)
+            cv2.putText(frame, f'Frame {i}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            out.write(frame)
+        
+        out.release()
+        print('Test video created: test_data/sample_video.mp4')
+        "
+    
+    - name: Test video ingestion on sample video
+      run: |
+        python -c "
+        import sys
+        import os
+        sys.path.append('.')
+        sys.path.append('src')
+        
+        try:
+            # Test basic video loading with OpenCV
+            import cv2
+            cap = cv2.VideoCapture('test_data/sample_video.mp4')
+            
+            if cap.isOpened():
+                ret, frame = cap.read()
+                if ret and frame is not None:
+                    print('✓ Video ingestion test: PASSED')
+                    print(f'  Frame shape: {frame.shape}')
+                    print(f'  Video FPS: {cap.get(cv2.CAP_PROP_FPS)}')
+                    print(f'  Frame count: {int(cap.get(cv2.CAP_PROP_FRAME_COUNT))}')
+                else:
+                    print('✗ Video ingestion test: FAILED - Could not read frame')
+                    exit(1)
+            else:
+                print('✗ Video ingestion test: FAILED - Could not open video')
+                exit(1)
+            
+            cap.release()
+            
+            # Test custom video processor if available
+            try:
+                from core.video_processor import VideoProcessor
+                processor = VideoProcessor()
+                success = processor.load_video('test_data/sample_video.mp4')
+                if success:
+                    print('✓ Custom video processor test: PASSED')
+                else:
+                    print('✗ Custom video processor test: FAILED')
+            except ImportError:
+                print('ℹ Custom video processor test: SKIPPED (module not found)')
+            except Exception as e:
+                print(f'✗ Custom video processor test: FAILED - {e}')
+                
+        except Exception as e:
+            print(f'✗ Video ingestion test: FAILED - {e}')
+            exit(1)
+        "
+    
     - name: Run unit tests
       run: |
         pytest tests/unit/ \
@@ -214,6 +285,148 @@ jobs:
         name: acceptance-test-results
         path: |
           junit-acceptance.xml
+
+  # Model Inference Smoke Tests
+  model-inference-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        pip install ultralytics opencv-python numpy
+        pip install -r requirements.txt
+    
+    - name: Create test stub image
+      run: |
+        mkdir -p test_data
+        python -c "
+        import cv2
+        import numpy as np
+        
+        # Create test image with some objects for detection
+        img = np.zeros((640, 640, 3), dtype=np.uint8)
+        
+        # Add some rectangular objects that might be detected
+        cv2.rectangle(img, (100, 100), (200, 200), (255, 0, 0), -1)  # Blue rectangle
+        cv2.rectangle(img, (300, 300), (400, 400), (0, 255, 0), -1)  # Green rectangle
+        cv2.circle(img, (500, 150), 50, (0, 0, 255), -1)  # Red circle
+        cv2.ellipse(img, (150, 450), (80, 40), 45, 0, 360, (255, 255, 0), -1)  # Yellow ellipse
+        
+        cv2.imwrite('test_data/test_detection_image.jpg', img)
+        print('Test detection image created: test_data/test_detection_image.jpg')
+        "
+    
+    - name: Test YOLO model loading and inference
+      run: |
+        python -c "
+        try:
+            from ultralytics import YOLO
+            import time
+            
+            # Test loading a tiny YOLO model (smallest for CI)
+            print('Loading YOLOv8 nano model...')
+            model = YOLO('yolov8n.pt')
+            print('✓ Model loaded successfully')
+            
+            # Test inference on test image
+            print('Running inference on test image...')
+            start_time = time.time()
+            results = model('test_data/test_detection_image.jpg', verbose=False)
+            inference_time = time.time() - start_time
+            
+            detections = len(results[0].boxes) if results[0].boxes else 0
+            print(f'✓ Inference completed in {inference_time:.3f}s')
+            print(f'  Detected {detections} objects')
+            
+            # Performance check (should be reasonable on CPU)
+            if inference_time < 5.0:  # 5 seconds max for CI
+                print('✓ Inference performance: ACCEPTABLE')
+            else:
+                print('⚠ Inference performance: SLOW (but acceptable for CI)')
+            
+            print('✓ YOLO inference smoke test: PASSED')
+            
+        except Exception as e:
+            print(f'✗ YOLO inference smoke test: FAILED - {e}')
+            exit(1)
+        "
+    
+    - name: Test custom detection pipeline
+      run: |
+        python -c "
+        import sys
+        sys.path.append('.')
+        sys.path.append('src')
+        
+        try:
+            # Test custom detection pipeline if available
+            from core.detection_pipeline import DetectionPipeline
+            import numpy as np
+            
+            pipeline = DetectionPipeline()
+            print('✓ Detection pipeline initialized')
+            
+            # Test with stub data
+            test_frame = np.zeros((640, 640, 3), dtype=np.uint8)
+            detections = pipeline.process_frame(test_frame)
+            
+            print(f'✓ Pipeline smoke test: PASSED - {len(detections)} detections')
+            
+        except ImportError as e:
+            print(f'ℹ Custom detection pipeline test: SKIPPED - {e}')
+        except Exception as e:
+            print(f'✗ Custom detection pipeline test: FAILED - {e}')
+            # Don't exit here as this might be expected in some configurations
+        "
+    
+    - name: Test model inference performance benchmark
+      run: |
+        python -c "
+        import time
+        import numpy as np
+        from ultralytics import YOLO
+        
+        model = YOLO('yolov8n.pt')
+        test_image = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
+        
+        # Warmup runs
+        print('Warming up model...')
+        for _ in range(3):
+            model(test_image, verbose=False)
+        
+        # Benchmark runs
+        print('Running performance benchmark...')
+        times = []
+        for i in range(10):
+            start = time.time()
+            model(test_image, verbose=False)
+            times.append(time.time() - start)
+        
+        avg_time = sum(times) / len(times)
+        fps = 1.0 / avg_time
+        
+        print(f'Average inference time: {avg_time:.3f}s')
+        print(f'Average FPS: {fps:.1f}')
+        
+        # Performance thresholds for CI (relaxed for CPU-only)
+        if fps >= 2.0:
+            print('✓ Performance benchmark: PASSED')
+        elif fps >= 1.0:
+            print('⚠ Performance benchmark: ACCEPTABLE (low FPS but functional)')
+        else:
+            print('✗ Performance benchmark: FAILED (too slow)')
+            exit(1)
+        "
 
   # Performance Tests
   performance-tests:

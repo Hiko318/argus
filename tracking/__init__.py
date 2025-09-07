@@ -10,8 +10,8 @@ from .sort_tracker import SORTTracker, Detection, Track, KalmanBoxTracker
 from .deepsort_tracker import DeepSORTTracker, DeepSORTTrack, AppearanceFeature
 from .suspect_lock import SuspectLock, SuspectLockManager, SuspectProfile, LockPriority
 from .track_manager import TrackManager, TrackingConfig, TrackerType
-from .iou_tracker import IOUTracker
-from ..reid.embedder import ReIDEmbedder, EmbeddingConfig, EmbeddingModel
+from .iou_tracker import IoUTracker
+from reid.embedder import ReIDEmbedder, EmbeddingConfig, EmbeddingModel
 
 __all__ = [
     'SORTTracker',

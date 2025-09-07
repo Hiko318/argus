@@ -347,6 +347,288 @@ class SARService:
                 "timestamp": time.time()
             }
         
+        # Re-identification (Re-ID) API Endpoints
+        @self.app.post("/api/reid/register")
+        async def register_reid_target(request: Dict[str, Any]):
+            """Register a new target for re-identification"""
+            try:
+                from ..vision.reid import compute_embedding, save_embedding
+                import base64
+                import numpy as np
+                import cv2
+                
+                # Extract image data
+                image_data = request.get("image_data")
+                if not image_data:
+                    raise HTTPException(status_code=400, detail="image_data is required")
+                
+                # Decode base64 image
+                try:
+                    image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
+                    image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+                    image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                    
+                    if image is None:
+                        raise ValueError("Failed to decode image")
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Invalid image data: {str(e)}")
+                
+                # Compute embedding
+                embedding = compute_embedding(image)
+                
+                # Prepare metadata
+                metadata = {
+                    "name": request.get("name", "Unknown"),
+                    "description": request.get("description", ""),
+                    "operator": request.get("operator", "unknown"),
+                    "priority": request.get("priority", "medium"),
+                    "tags": request.get("tags", []),
+                    "source": "manual_registration",
+                    "image_shape": image.shape
+                }
+                
+                # Save embedding
+                target_id = save_embedding(embedding, metadata)
+                
+                if not target_id:
+                    raise HTTPException(status_code=500, detail="Failed to save embedding")
+                
+                logger.info(f"Registered new Re-ID target: {target_id}")
+                
+                # Log registration event
+                telemetry = self.telemetry_service.get_current_telemetry()
+                self.logging_service.log_system_event(
+                    event_type="reid_target_registered",
+                    description=f"New Re-ID target registered: {metadata['name']}",
+                    metadata={
+                        "target_id": target_id,
+                        "target_name": metadata["name"],
+                        "operator": metadata["operator"],
+                        "priority": metadata["priority"]
+                    },
+                    drone_gps=telemetry.gps_coordinates if telemetry else None
+                )
+                
+                return {
+                    "status": "success",
+                    "target_id": target_id,
+                    "message": f"Target '{metadata['name']}' registered successfully"
+                }
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Re-ID registration failed: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+        
+        @self.app.post("/api/reid/match")
+        async def match_reid_detection(request: Dict[str, Any]):
+            """Match a detection against registered Re-ID targets"""
+            try:
+                from ..vision.reid import compute_embedding, load_embeddings, batch_match_embeddings
+                import base64
+                import numpy as np
+                import cv2
+                
+                # Extract image data
+                image_data = request.get("image_data")
+                if not image_data:
+                    raise HTTPException(status_code=400, detail="image_data is required")
+                
+                # Decode base64 image
+                try:
+                    image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
+                    image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+                    image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                    
+                    if image is None:
+                        raise ValueError("Failed to decode image")
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Invalid image data: {str(e)}")
+                
+                # Compute embedding for the detection
+                detection_embedding = compute_embedding(image)
+                
+                # Load registered targets
+                targets_db = load_embeddings()
+                
+                if not targets_db:
+                    return {
+                        "status": "success",
+                        "matches": [],
+                        "message": "No registered targets found"
+                    }
+                
+                # Extract embeddings and metadata
+                target_embeddings = []
+                target_metadata = []
+                
+                for target_id, target_data in targets_db.items():
+                    target_embeddings.append(target_data["embedding"])
+                    target_metadata.append({
+                        "target_id": target_id,
+                        "name": target_data["metadata"].get("name", "Unknown"),
+                        "description": target_data["metadata"].get("description", ""),
+                        "priority": target_data["metadata"].get("priority", "medium"),
+                        "created_at": target_data.get("created_at", "")
+                    })
+                
+                # Perform batch matching
+                threshold = request.get("threshold", 0.7)
+                match_results = batch_match_embeddings(detection_embedding, target_embeddings, threshold)
+                
+                # Combine results with metadata
+                matches = []
+                for result in match_results:
+                    if result.get("is_match", False):
+                        probe_idx = result["probe_index"]
+                        match_info = {
+                            "target_id": target_metadata[probe_idx]["target_id"],
+                            "target_name": target_metadata[probe_idx]["name"],
+                            "description": target_metadata[probe_idx]["description"],
+                            "priority": target_metadata[probe_idx]["priority"],
+                            "similarity": result["similarity"],
+                            "confidence": result["confidence"],
+                            "cosine_similarity": result["cosine_similarity"],
+                            "threshold_used": threshold
+                        }
+                        matches.append(match_info)
+                
+                # Sort matches by similarity (highest first)
+                matches.sort(key=lambda x: x["similarity"], reverse=True)
+                
+                # Log matching event
+                telemetry = self.telemetry_service.get_current_telemetry()
+                detection_metadata = {
+                    "num_targets_checked": len(target_embeddings),
+                    "num_matches_found": len(matches),
+                    "threshold_used": threshold,
+                    "best_similarity": matches[0]["similarity"] if matches else 0.0,
+                    "detection_bbox": request.get("bbox"),
+                    "source_id": request.get("source_id", "unknown")
+                }
+                
+                if matches:
+                    self.logging_service.log_system_event(
+                        event_type="reid_match_found",
+                        description=f"Re-ID match found: {matches[0]['target_name']} (similarity: {matches[0]['similarity']:.3f})",
+                        metadata=detection_metadata,
+                        drone_gps=telemetry.gps_coordinates if telemetry else None
+                    )
+                else:
+                    self.logging_service.log_system_event(
+                        event_type="reid_no_match",
+                        description="No Re-ID matches found for detection",
+                        metadata=detection_metadata,
+                        drone_gps=telemetry.gps_coordinates if telemetry else None
+                    )
+                
+                return {
+                    "status": "success",
+                    "matches": matches,
+                    "total_targets_checked": len(target_embeddings),
+                    "threshold_used": threshold,
+                    "timestamp": time.time()
+                }
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Re-ID matching failed: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Matching failed: {str(e)}")
+        
+        @self.app.get("/api/reid/targets")
+        async def get_reid_targets():
+            """Get all registered Re-ID targets"""
+            try:
+                from ..vision.reid import load_embeddings
+                
+                targets_db = load_embeddings()
+                
+                targets = []
+                for target_id, target_data in targets_db.items():
+                    target_info = {
+                        "target_id": target_id,
+                        "name": target_data["metadata"].get("name", "Unknown"),
+                        "description": target_data["metadata"].get("description", ""),
+                        "priority": target_data["metadata"].get("priority", "medium"),
+                        "tags": target_data["metadata"].get("tags", []),
+                        "operator": target_data["metadata"].get("operator", "unknown"),
+                        "created_at": target_data.get("created_at", ""),
+                        "embedding_shape": target_data.get("shape", []),
+                        "source": target_data["metadata"].get("source", "unknown")
+                    }
+                    targets.append(target_info)
+                
+                # Sort by creation date (newest first)
+                targets.sort(key=lambda x: x["created_at"], reverse=True)
+                
+                return {
+                    "status": "success",
+                    "targets": targets,
+                    "total_count": len(targets)
+                }
+                
+            except Exception as e:
+                logger.error(f"Failed to get Re-ID targets: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to get targets: {str(e)}")
+        
+        @self.app.delete("/api/reid/targets/{target_id}")
+        async def delete_reid_target(target_id: str):
+            """Delete a registered Re-ID target"""
+            try:
+                from ..vision.reid import load_embeddings
+                import pickle
+                from pathlib import Path
+                
+                # Load current database
+                save_path = "data/reid_embeddings.pkl"
+                targets_db = load_embeddings(save_path)
+                
+                if target_id not in targets_db:
+                    raise HTTPException(status_code=404, detail="Target not found")
+                
+                # Get target info for logging
+                target_info = targets_db[target_id]
+                target_name = target_info["metadata"].get("name", "Unknown")
+                
+                # Remove target
+                del targets_db[target_id]
+                
+                # Save updated database
+                save_path = Path(save_path)
+                save_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                with open(save_path, 'wb') as f:
+                    pickle.dump(targets_db, f)
+                
+                logger.info(f"Deleted Re-ID target: {target_id} ({target_name})")
+                
+                # Log deletion event
+                telemetry = self.telemetry_service.get_current_telemetry()
+                self.logging_service.log_system_event(
+                    event_type="reid_target_deleted",
+                    description=f"Re-ID target deleted: {target_name}",
+                    metadata={
+                        "target_id": target_id,
+                        "target_name": target_name,
+                        "remaining_targets": len(targets_db)
+                    },
+                    drone_gps=telemetry.gps_coordinates if telemetry else None
+                )
+                
+                return {
+                    "status": "success",
+                    "message": f"Target '{target_name}' deleted successfully",
+                    "remaining_targets": len(targets_db)
+                }
+                
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Failed to delete Re-ID target: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")
+        
         # Data Export and Mission Summary Endpoints
         @self.app.get("/api/export-logs")
         async def export_logs():

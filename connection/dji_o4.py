@@ -75,7 +75,7 @@ class TelemetryData:
 
 @dataclass
 class FrameData:
-    """Video frame with timing information."""
+    """Video frame with timing information and synchronized telemetry."""
     frame: np.ndarray
     timestamp: float
     pts: int  # Presentation timestamp
@@ -84,10 +84,28 @@ class FrameData:
     height: int
     format: str = 'BGR'
     
+    # Synchronization data
+    synchronized_telemetry: Optional[Dict[str, Any]] = None
+    sync_quality: Optional[str] = None
+    time_diff_ms: Optional[float] = None
+    wall_clock_time: Optional[float] = None
+    
     @property
     def shape(self) -> Tuple[int, int, int]:
         """Frame shape (height, width, channels)."""
         return self.frame.shape
+    
+    @property
+    def has_synchronized_telemetry(self) -> bool:
+        """Check if frame has synchronized telemetry data."""
+        return self.synchronized_telemetry is not None
+    
+    @property
+    def telemetry_data(self) -> Optional[Any]:
+        """Get telemetry data if available."""
+        if self.synchronized_telemetry:
+            return self.synchronized_telemetry.get('telemetry')
+        return None
 
 
 class DJIO4ConnectionBase(ABC):
