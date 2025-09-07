@@ -1,15 +1,11 @@
-# YOLOv8 Training Configuration for SAR Operations
-# Optimized for person detection in aerial imagery
+# SAR-Optimized YOLOv8 Training Configuration
+# Comprehensive configuration for Search and Rescue operations with enhanced metrics tracking
 
 # Model configuration
-model: yolov8s.pt  # Use small model for better accuracy (upgraded from nano)
+model: yolov8n.pt  # Base model (yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)
 
 # Dataset configuration
-data:
-  path: datasets/sar_dataset
-  train: images/train
-  val: images/val
-  test: images/test
+data: 'data/training/sar_dataset.yaml'
   
   # Class definitions for SAR operations (enhanced with pets)
   nc: 6  # number of classes
@@ -53,9 +49,9 @@ hyp:
   copy_paste: 0.0    # segment copy-paste (probability)
 
 # Training settings (enhanced for better accuracy)
-epochs: 150
-batch_size: 12  # reduced for larger model and better gradient updates
-imgsz: 736      # increased image size for better small object detection
+epochs: 100
+batch: 16       # Adjust based on GPU memory
+imgsz: 1280     # Higher resolution for aerial imagery
 device: 0  # GPU device, use 'cpu' for CPU training
 workers: 8
 project: runs/train
@@ -90,36 +86,35 @@ half: false
 dnn: false
 plots: true
 
-# SAR-specific optimizations (enhanced for covered humans and pets)
+# SAR-specific optimizations (enhanced for distance-binned metrics)
 sar_config:
-  # Aerial imagery specific settings
-  min_object_size: 8   # reduced for smaller/distant objects
-  max_object_size: 300 # increased for closer objects
+  # Distance bins for recall metrics (meters)
+  distance_bins:
+    - [0, 50]      # Close range
+    - [50, 200]    # Medium range
+    - [200, 1000]  # Long range
   
-  # Detection confidence thresholds (optimized for >93% accuracy)
-  person_conf_threshold: 0.15      # lowered for better recall of covered humans
-  vehicle_conf_threshold: 0.3
-  structure_conf_threshold: 0.4
-  debris_conf_threshold: 0.2
-  dog_conf_threshold: 0.2          # new threshold for dogs
-  cat_conf_threshold: 0.2          # new threshold for cats
+  # Class weights for SAR priorities
+  class_weights:
+    person: 2.0      # Higher weight for person detection
+    vehicle: 1.5     # Medium weight for vehicles
+    structure: 1.0   # Standard weight for structures
+    debris: 1.0      # Standard weight for debris
+    dog: 2.0         # High weight for pet detection
+    cat: 2.0         # High weight for pet detection
   
-  # NMS settings for aerial imagery
-  nms_iou_threshold: 0.4           # slightly lower for better detection of overlapping objects
+  # Evaluation settings
+  eval_settings:
+    confidence_thresholds: [0.001, 0.01, 0.1, 0.25, 0.5]
+    iou_thresholds: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+    max_detections: [1, 10, 100, 300]
   
-  # Training data balance (enhanced with pets)
-  person_weight: 3.0               # increased weight for critical person detection
-  vehicle_weight: 1.5
-  structure_weight: 1.0
-  debris_weight: 1.2
-  dog_weight: 2.5                  # high weight for pet detection
-  cat_weight: 2.5                  # high weight for pet detection
-  
-  # Advanced settings for covered human detection
-  occlusion_augmentation: true     # enable occlusion-specific augmentation
-  multi_scale_training: true       # enable multi-scale training
-  focal_loss_alpha: 0.25          # focal loss for hard examples
-  focal_loss_gamma: 2.0           # focal loss focusing parameter
+  # Performance targets
+  performance_targets:
+    min_map50: 0.7      # Minimum mAP@0.5
+    min_recall: 0.8     # Minimum recall
+    max_inference_ms: 50  # Maximum inference time (ms)
+    min_fps: 20         # Minimum FPS
 
 # Validation settings
 val_config:

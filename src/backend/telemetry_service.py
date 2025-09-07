@@ -16,10 +16,12 @@ import time
 import json
 import logging
 import threading
-from dataclasses import dataclass, asdict
-from typing import Optional, Dict, Any, Callable, List
+from dataclasses import dataclass, asdict, field
+from typing import Optional, Dict, Any, Callable, List, Union
 from datetime import datetime, timezone
 import math
+import asyncio
+from collections import deque
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -430,6 +432,94 @@ class TelemetryService:
                     closest_data = data
             
             return closest_data
+    
+    def get_telemetry_range(self, start_time: float, end_time: float) -> List[TelemetryData]:
+        """Get telemetry data within a time range.
+        
+        Args:
+            start_time: Start timestamp
+            end_time: End timestamp
+            
+        Returns:
+            List of telemetry data within the time range
+        """
+        with self.history_lock:
+            return [
+                data for data in self.data_history
+                if start_time <= data.timestamp <= end_time
+            ]
+    
+    def get_interpolated_telemetry(self, timestamp: float) -> Optional[TelemetryData]:
+        """Get interpolated telemetry data for the given timestamp.
+        
+        Args:
+            timestamp: Target timestamp
+            
+        Returns:
+            Interpolated telemetry data or None if not enough data
+        """
+        with self.history_lock:
+            if len(self.data_history) < 2:
+                return self.get_telemetry_at_time(timestamp)
+            
+            # Find surrounding telemetry points
+            before_data = None
+            after_data = None
+            
+            for data in self.data_history:
+                if data.timestamp <= timestamp:
+                    if before_data is None or data.timestamp > before_data.timestamp:
+                        before_data = data
+                elif data.timestamp > timestamp:
+                    if after_data is None or data.timestamp < after_data.timestamp:
+                        after_data = data
+            
+            # If we have both before and after, interpolate
+            if before_data and after_data:
+                return self._interpolate_telemetry(before_data, after_data, timestamp)
+            
+            # Otherwise return closest
+            return before_data or after_data
+    
+    def _interpolate_telemetry(self, before: TelemetryData, after: TelemetryData, timestamp: float) -> TelemetryData:
+        """Interpolate between two telemetry data points.
+        
+        Args:
+            before: Earlier telemetry data
+            after: Later telemetry data
+            timestamp: Target timestamp
+            
+        Returns:
+            Interpolated telemetry data
+        """
+        # Calculate interpolation factor
+        time_diff = after.timestamp - before.timestamp
+        if time_diff == 0:
+            return before
+        
+        factor = (timestamp - before.timestamp) / time_diff
+        factor = max(0.0, min(1.0, factor))  # Clamp to [0, 1]
+        
+        # Interpolate numeric fields
+        def lerp(a: float, b: float) -> float:
+            return a + (b - a) * factor
+        
+        return TelemetryData(
+            timestamp=timestamp,
+            latitude=lerp(before.latitude, after.latitude),
+            longitude=lerp(before.longitude, after.longitude),
+            altitude_msl=lerp(before.altitude_msl, after.altitude_msl),
+            altitude_agl=lerp(before.altitude_agl, after.altitude_agl),
+            roll=lerp(before.roll, after.roll),
+            pitch=lerp(before.pitch, after.pitch),
+            yaw=lerp(before.yaw, after.yaw),
+            gimbal_roll=lerp(before.gimbal_roll, after.gimbal_roll),
+            gimbal_pitch=lerp(before.gimbal_pitch, after.gimbal_pitch),
+            gimbal_yaw=lerp(before.gimbal_yaw, after.gimbal_yaw),
+            frame_id=before.frame_id,
+            quality=lerp(before.quality, after.quality),
+            source=f"interpolated_{before.source}_{after.source}"
+        )
     
     def start_all(self):
         """Start all telemetry collectors."""

@@ -1,0 +1,90 @@
+# SAR Dataset Configuration for YOLO Training
+# Foresight SAR Application - Object Detection Dataset
+
+# Dataset paths (relative to this file)
+path: ./data/sar  # dataset root dir
+train: images/train  # train images (relative to 'path')
+val: images/val      # val images (relative to 'path')
+test: images/test    # test images (optional)
+
+# Classes for SAR object detection
+names:
+  0: person
+  1: vehicle
+  2: aircraft
+  3: boat
+  4: building
+  5: suspicious_object
+  6: weapon
+  7: package
+  8: drone
+  9: animal
+
+# Number of classes
+nc: 10
+
+# Dataset info
+dataset_info:
+  name: "SAR Detection Dataset"
+  version: "1.0"
+  description: "Search and Rescue object detection dataset for aerial surveillance"
+  created: "2024"
+  license: "Internal Use"
+
+# Training parameters (optional - can be overridden in command line)
+training:
+  epochs: 80
+  imgsz: 1280
+  batch_size: 12
+  workers: 4
+  device: 0  # GPU device, or 'cpu'
+
+# Data augmentation settings
+augmentation:
+  hsv_h: 0.015
+  hsv_s: 0.7
+  hsv_v: 0.4
+  degrees: 0.0
+  translate: 0.1
+  scale: 0.5
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.5
+  mosaic: 1.0
+  mixup: 0.0
+
+# Validation settings
+validation:
+  save_json: true
+  save_hybrid: false
+  conf: 0.001
+  iou: 0.6
+  max_det: 300
+  half: false
+  dnn: false
+
+# Model export settings
+export:
+  format: ['onnx', 'tensorrt']
+  opset: 12
+  simplify: true
+  optimize: true
+  int8: false
+  half: true
+  dynamic: false
+  batch_size: 1
+
+# Notes:
+# - Ensure your dataset follows YOLO format:
+#   data/sar/
+#   ├── images/
+#   │   ├── train/
+#   │   ├── val/
+#   │   └── test/
+#   └── labels/
+#       ├── train/
+#       ├── val/
+#       └── test/
+# - Each image should have a corresponding .txt label file
+# - Label format: class_id center_x center_y width height (normalized 0-1)

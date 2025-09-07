@@ -9,7 +9,7 @@ appearance embeddings for improved tracking accuracy.
 import numpy as np
 import cv2
 from typing import List, Dict, Optional, Tuple, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from collections import defaultdict, deque
 import logging
 from scipy.optimize import linear_sum_assignment
@@ -31,15 +31,26 @@ class AppearanceFeature:
             self.embedding = self.embedding / np.linalg.norm(self.embedding)
 
 
-@dataclass
 class DeepSORTTrack(Track):
     """Extended track with appearance features"""
-    features: deque = field(default_factory=lambda: deque(maxlen=100))
-    confirmed: bool = False
-    time_since_update: int = 0
-    hits: int = 0
-    hit_streak: int = 0
-    age: int = 0
+    
+    def __init__(self, detection, track_id: int, max_age: int = 30):
+        """Initialize DeepSORT track"""
+        # Initialize Track dataclass fields
+        super().__init__(
+            id=track_id,
+            bbox=detection.bbox,
+            confidence=detection.confidence,
+            class_id=detection.class_id,
+            age=0,
+            hits=0,
+            time_since_update=0,
+            state='tentative'
+        )
+        self.features = deque(maxlen=100)
+        self.confirmed = False
+        self.hit_streak = 0
+        self.max_age = max_age
     
     def add_feature(self, feature: AppearanceFeature):
         """Add appearance feature to track"""
@@ -202,7 +213,7 @@ class DeepSORTTracker:
         # Extract features for all detections
         detection_features = []
         for det in detections:
-            bbox = (int(det.x1), int(det.y1), int(det.x2), int(det.y2))
+            bbox = (int(det.bbox[0]), int(det.bbox[1]), int(det.bbox[2]), int(det.bbox[3]))
             feature_vec = self.feature_extractor.extract_features(image, bbox)
             feature = AppearanceFeature(
                 embedding=feature_vec,
@@ -228,7 +239,7 @@ class DeepSORTTracker:
             track = self.tracks[trk_idx]
             
             # Update Kalman filter
-            track.kalman_filter.update(detection.to_xyxy())
+            track.kalman_filter.update(detection.bbox)
             
             # Add appearance feature
             track.add_feature(feature)
@@ -248,13 +259,13 @@ class DeepSORTTracker:
             feature = detection_features[i]
             
             # Create new track
-            kalman_filter = KalmanBoxTracker(detection.to_xyxy())
+            kalman_filter = KalmanBoxTracker(detection.bbox)
             track = DeepSORTTrack(
-                id=self.next_id,
-                kalman_filter=kalman_filter,
-                class_id=detection.class_id,
-                confidence=detection.confidence
+                detection=detection,
+                track_id=self.next_id,
+                max_age=self.max_age
             )
+            track.kalman_filter = kalman_filter
             track.add_feature(feature)
             track.hits = 1
             track.hit_streak = 1
@@ -327,7 +338,7 @@ class DeepSORTTracker:
             for j, track in enumerate(tracks):
                 # Motion distance (IoU)
                 pred_bbox = track.kalman_filter.get_state()[:4]
-                det_bbox = detection.to_xyxy()
+                det_bbox = detection.bbox
                 iou_distance = 1 - self._calculate_iou(pred_bbox, det_bbox)
                 
                 # Appearance distance

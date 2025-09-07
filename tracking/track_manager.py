@@ -17,7 +17,7 @@ from pathlib import Path
 from .sort_tracker import SORTTracker, Detection, Track
 from .deepsort_tracker import DeepSORTTracker, DeepSORTTrack
 from .suspect_lock import SuspectLockManager, SuspectLock, LockPriority
-from ..reid.embedder import ReIDEmbedder, EmbeddingConfig, EmbeddingModel
+from reid.embedder import ReIDEmbedder, EmbeddingConfig, EmbeddingModel
 
 
 class TrackerType(Enum):

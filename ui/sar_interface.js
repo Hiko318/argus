@@ -49,6 +49,334 @@ function closeSuspectPanel() {
     }
 }
 
+// Flag/Lock functionality
+let currentCapture = null;
+
+function flagLockCapture() {
+    // Capture current frame from video
+    const video = document.getElementById('video-feed');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    // Get current timestamp and location
+    const timestamp = new Date().toISOString();
+    const lat = document.getElementById('lat-display').textContent;
+    const location = `${lat}, ${document.getElementById('error-display').textContent}`;
+    
+    // Store capture data
+    currentCapture = {
+        image: canvas.toDataURL('image/jpeg', 0.9),
+        timestamp: timestamp,
+        location: location,
+        operatorId: '',
+        notes: ''
+    };
+    
+    // Show modal
+    showFlagLockModal();
+}
+
+function showFlagLockModal() {
+    if (!currentCapture) return;
+    
+    // Populate modal with capture data
+    document.getElementById('capture-preview-img').src = currentCapture.image;
+    document.getElementById('capture-timestamp').textContent = currentCapture.timestamp;
+    document.getElementById('capture-location').textContent = currentCapture.location;
+    document.getElementById('operator-id').value = '';
+    document.getElementById('capture-notes').value = '';
+    
+    // Show modal
+    document.getElementById('flag-lock-modal').style.display = 'flex';
+}
+
+function closeFlagLockModal() {
+    document.getElementById('flag-lock-modal').style.display = 'none';
+    currentCapture = null;
+}
+
+// Retraining functionality
+let currentRetrainData = null;
+
+function openRetrainModal() {
+    // Capture current scene data
+    const timestamp = new Date().toISOString();
+    const lat = document.getElementById('lat-display').textContent;
+    const lon = document.getElementById('error-display').textContent;
+    const location = `${lat}, ${lon}`;
+    
+    // Generate scene ID based on timestamp
+    const sceneId = `SCENE_${timestamp.replace(/[:.]/g, '_')}`;
+    
+    // Store current scene data
+    currentRetrainData = {
+        sceneId: sceneId,
+        timestamp: timestamp,
+        location: location,
+        video: document.getElementById('video-feed').src,
+        currentFrame: getCurrentVideoFrame()
+    };
+    
+    // Populate modal with scene data
+    document.getElementById('retrain-scene-id').textContent = sceneId;
+    document.getElementById('retrain-timestamp').textContent = new Date(timestamp).toLocaleString();
+    document.getElementById('retrain-location').textContent = location;
+    
+    // Reset form fields
+    document.getElementById('flag-reason').value = 'low_confidence';
+    document.getElementById('predicted-class').value = '';
+    document.getElementById('corrected-class').value = '';
+    document.getElementById('confidence-score').value = '';
+    document.getElementById('priority-level').value = '3';
+    document.getElementById('retrain-notes').value = '';
+    document.getElementById('retrain-operator-id').value = '';
+    
+    // Show modal
+    document.getElementById('retrain-modal').style.display = 'flex';
+}
+
+function closeRetrainModal() {
+    document.getElementById('retrain-modal').style.display = 'none';
+    currentRetrainData = null;
+}
+
+function getCurrentVideoFrame() {
+    const video = document.getElementById('video-feed');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+function submitRetrainFlag() {
+    if (!currentRetrainData) {
+        alert('No scene data available');
+        return;
+    }
+    
+    // Collect form data
+    const retrainFlag = {
+        sceneId: currentRetrainData.sceneId,
+        timestamp: currentRetrainData.timestamp,
+        location: currentRetrainData.location,
+        frameData: currentRetrainData.currentFrame,
+        flagReason: document.getElementById('flag-reason').value,
+        predictedClass: document.getElementById('predicted-class').value,
+        correctedClass: document.getElementById('corrected-class').value,
+        confidenceScore: parseFloat(document.getElementById('confidence-score').value) || null,
+        priorityLevel: parseInt(document.getElementById('priority-level').value),
+        notes: document.getElementById('retrain-notes').value,
+        operatorId: document.getElementById('retrain-operator-id').value,
+        flaggedAt: new Date().toISOString()
+    };
+    
+    // Validate required fields
+    if (!retrainFlag.operatorId) {
+        alert('Please enter your operator ID');
+        return;
+    }
+    
+    if (!retrainFlag.correctedClass) {
+        alert('Please specify the correct classification');
+        return;
+    }
+    
+    // Submit to active learning system
+    submitToActiveLearning(retrainFlag)
+        .then(response => {
+            if (response.success) {
+                alert(`Scene flagged successfully! Flag ID: ${response.flagId}`);
+                closeRetrainModal();
+                
+                // Update UI to show flagged status
+                updateRetrainStatus(retrainFlag.sceneId, 'flagged');
+            } else {
+                alert(`Failed to flag scene: ${response.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting retrain flag:', error);
+            alert('Error submitting flag. Check console for details.');
+        });
+}
+
+async function submitToActiveLearning(flagData) {
+    try {
+        // In a real implementation, this would send to the active learning API
+        // For now, we'll simulate the submission and store locally
+        
+        // Store in localStorage for demonstration
+        const existingFlags = JSON.parse(localStorage.getItem('retrainFlags') || '[]');
+        const flagId = `FLAG_${Date.now()}`;
+        
+        const flagRecord = {
+            ...flagData,
+            flagId: flagId,
+            status: 'pending',
+            submittedAt: new Date().toISOString()
+        };
+        
+        existingFlags.push(flagRecord);
+        localStorage.setItem('retrainFlags', JSON.stringify(existingFlags));
+        
+        // Log to console for debugging
+        console.log('Retrain flag submitted:', flagRecord);
+        
+        // Simulate API response
+        return {
+            success: true,
+            flagId: flagId,
+            message: 'Scene flagged for retraining'
+        };
+        
+    } catch (error) {
+        console.error('Error in submitToActiveLearning:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+function updateRetrainStatus(sceneId, status) {
+    // Update UI to show that scene has been flagged
+    const statusElement = document.getElementById('tracking-status');
+    if (statusElement) {
+        statusElement.innerHTML += `<div class="retrain-flag">Scene ${sceneId} flagged for retraining (${status})</div>`;
+    }
+    
+    // Add visual indicator to video feed
+    const videoContainer = document.querySelector('.video-container');
+    if (videoContainer && !videoContainer.querySelector('.retrain-indicator')) {
+        const indicator = document.createElement('div');
+        indicator.className = 'retrain-indicator';
+        indicator.innerHTML = '🏷️ Flagged for Retraining';
+        indicator.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        `;
+        videoContainer.appendChild(indicator);
+        
+        // Remove indicator after 5 seconds
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }, 5000);
+    }
+}
+
+// Function to view flagged scenes (for debugging/admin)
+function viewRetrainFlags() {
+    const flags = JSON.parse(localStorage.getItem('retrainFlags') || '[]');
+    console.log('All retrain flags:', flags);
+    return flags;
+}
+
+function exportAsCSV() {
+    if (!currentCapture) return;
+    
+    const operatorId = document.getElementById('operator-id').value;
+    const notes = document.getElementById('capture-notes').value;
+    
+    const csvData = [
+        ['Field', 'Value'],
+        ['Timestamp', currentCapture.timestamp],
+        ['Location', currentCapture.location],
+        ['Operator ID', operatorId],
+        ['Notes', notes]
+    ];
+    
+    const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+    downloadFile(csvContent, `evidence_${Date.now()}.csv`, 'text/csv');
+}
+
+function exportAsJSON() {
+    if (!currentCapture) return;
+    
+    const operatorId = document.getElementById('operator-id').value;
+    const notes = document.getElementById('capture-notes').value;
+    
+    const jsonData = {
+        timestamp: currentCapture.timestamp,
+        location: currentCapture.location,
+        operatorId: operatorId,
+        notes: notes,
+        image: currentCapture.image
+    };
+    
+    const jsonContent = JSON.stringify(jsonData, null, 2);
+    downloadFile(jsonContent, `evidence_${Date.now()}.json`, 'application/json');
+}
+
+function packageEvidence() {
+    if (!currentCapture) return;
+    
+    const operatorId = document.getElementById('operator-id').value;
+    const notes = document.getElementById('capture-notes').value;
+    
+    // Send to backend for evidence packaging
+    const evidenceData = {
+        timestamp: currentCapture.timestamp,
+        location: currentCapture.location,
+        operatorId: operatorId,
+        notes: notes,
+        image: currentCapture.image
+    };
+    
+    fetch('/api/package-evidence', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(evidenceData)
+    })
+    .then(response => response.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `evidence_${Date.now()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        console.error('Error packaging evidence:', error);
+        alert('Error packaging evidence. Please try again.');
+    });
+    
+    closeFlagLockModal();
+}
+
+function downloadFile(content, filename, contentType) {
+    const blob = new Blob([content], { type: contentType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
 function selectTargetImage() {
     const input = document.getElementById('target-image-input');
     if (input) {
