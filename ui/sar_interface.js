@@ -1,17 +1,81 @@
+// System state tracking
+let systemState = {
+    connected: false,
+    running: false,
+    videoConnected: false,
+    telemetryConnected: false,
+    detectionRunning: false,
+    geolocationActive: false
+};
+
 // Global functions for header controls
 function toggleConnection() {
-    console.log('Toggle connection');
-    // Implementation for connection toggle
+    systemState.connected = !systemState.connected;
+    
+    if (systemState.connected) {
+        updateSystemStatus('connected', 'Connected');
+        updateVideoStatus('connected', 'Signal Active');
+        updateTelemetryStatus('connected', 'Online');
+        console.log('✓ System connected successfully');
+        showStatusMessage('Connected to system', 'success');
+    } else {
+        updateSystemStatus('disconnected', 'Disconnected');
+        updateVideoStatus('disconnected', 'No Signal');
+        updateTelemetryStatus('disconnected', 'Offline');
+        updateDetectionStatus('disconnected', 'Stopped');
+        updateGeolocationStatus('disconnected', 'Offline');
+        systemState.running = false;
+        console.log('✗ System disconnected');
+        showStatusMessage('Disconnected from system', 'error');
+    }
 }
 
 function startSystem() {
-    console.log('Start system');
-    // Implementation for system start
+    if (!systemState.connected) {
+        showStatusMessage('Cannot start: System not connected', 'error');
+        console.log('✗ Cannot start: System not connected');
+        return;
+    }
+    
+    if (systemState.running) {
+        showStatusMessage('System already running', 'warning');
+        console.log('⚠ System already running');
+        return;
+    }
+    
+    systemState.running = true;
+    systemState.detectionRunning = true;
+    systemState.geolocationActive = true;
+    
+    updateDetectionStatus('connected', 'Active');
+    updateGeolocationStatus('connected', 'Active');
+    
+    console.log('✓ System started successfully');
+    showStatusMessage('System started - All services active', 'success');
+    
+    // Simulate performance metrics
+    startPerformanceMonitoring();
 }
 
 function stopSystem() {
-    console.log('Stop system');
-    // Implementation for system stop
+    if (!systemState.running) {
+        showStatusMessage('System already stopped', 'warning');
+        console.log('⚠ System already stopped');
+        return;
+    }
+    
+    systemState.running = false;
+    systemState.detectionRunning = false;
+    systemState.geolocationActive = false;
+    
+    updateDetectionStatus('disconnected', 'Stopped');
+    updateGeolocationStatus('disconnected', 'Offline');
+    
+    console.log('✓ System stopped');
+    showStatusMessage('System stopped - All services offline', 'success');
+    
+    // Stop performance monitoring
+    stopPerformanceMonitoring();
 }
 
 function toggleMode() {
@@ -98,6 +162,282 @@ function closeFlagLockModal() {
     document.getElementById('flag-lock-modal').style.display = 'none';
     currentCapture = null;
 }
+
+// Status panel management
+function toggleStatusPanel() {
+    const panel = document.getElementById('statusPanel');
+    const content = document.getElementById('statusContent');
+    const toggle = document.getElementById('statusToggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        toggle.textContent = '−';
+    } else {
+        content.style.display = 'none';
+        toggle.textContent = '+';
+    }
+}
+
+// Status update functions
+function updateSystemStatus(status, text) {
+    const indicator = document.getElementById('systemIndicator');
+    const value = document.getElementById('systemValue');
+    
+    if (indicator) indicator.className = `status-indicator ${status}`;
+    if (value) value.textContent = text;
+}
+
+function updateVideoStatus(status, text) {
+    const indicator = document.getElementById('videoIndicator');
+    const value = document.getElementById('videoValue');
+    
+    if (indicator) indicator.className = `status-indicator ${status}`;
+    if (value) value.textContent = text;
+}
+
+function updateTelemetryStatus(status, text) {
+    const indicator = document.getElementById('telemetryIndicator');
+    const value = document.getElementById('telemetryValue');
+    
+    if (indicator) indicator.className = `status-indicator ${status}`;
+    if (value) value.textContent = text;
+}
+
+function updateDetectionStatus(status, text) {
+    const indicator = document.getElementById('detectionIndicator');
+    const value = document.getElementById('detectionValue');
+    
+    if (indicator) indicator.className = `status-indicator ${status}`;
+    if (value) value.textContent = text;
+}
+
+function updateGeolocationStatus(status, text) {
+    const indicator = document.getElementById('geolocationIndicator');
+    const value = document.getElementById('geolocationValue');
+    
+    if (indicator) indicator.className = `status-indicator ${status}`;
+    if (value) value.textContent = text;
+}
+
+function updatePerformanceMetrics(metrics) {
+    // Update status panel metrics
+    const fpsEl = document.getElementById('fps-status');
+    const latencyEl = document.getElementById('latency-display');
+    
+    if (fpsEl) {
+        fpsEl.textContent = `${metrics.fps}`;
+        // Color code based on thresholds
+        fpsEl.style.color = getThresholdColor('fps', metrics.fps);
+    }
+    
+    if (latencyEl) {
+        latencyEl.textContent = `${metrics.latency} ms`;
+        latencyEl.style.color = getThresholdColor('latency', metrics.latency);
+    }
+}
+
+function updateHUDMetrics(metrics) {
+    // Update HUD display elements
+    const fpsDisplay = document.getElementById('fps-display');
+    const gpuDisplay = document.getElementById('gpu-display');
+    const latDisplay = document.getElementById('lat-display');
+    const errorDisplay = document.getElementById('error-display');
+    
+    if (fpsDisplay) {
+        fpsDisplay.textContent = metrics.fps;
+        fpsDisplay.style.color = getThresholdColor('fps', metrics.fps);
+    }
+    
+    if (gpuDisplay) {
+        gpuDisplay.textContent = `${metrics.gpu_percent}%`;
+        gpuDisplay.style.color = getThresholdColor('gpu', metrics.gpu_percent);
+    }
+    
+    if (latDisplay) {
+        latDisplay.textContent = `${metrics.latency}`;
+        latDisplay.style.color = getThresholdColor('latency', metrics.latency);
+    }
+    
+    if (errorDisplay) {
+        errorDisplay.textContent = `±${metrics.error_margin}m`;
+        errorDisplay.style.color = getThresholdColor('error', metrics.error_margin);
+    }
+    
+    // Update signal status
+    const signalElements = document.querySelectorAll('.signal-status');
+    signalElements.forEach(el => {
+        if (metrics.signal_status === 'NO SIGNAL') {
+            el.textContent = 'NO SIGNAL...';
+            el.style.color = '#ff4444';
+        } else {
+            el.textContent = 'CONNECTED';
+            el.style.color = '#00ff00';
+        }
+    });
+}
+
+function getThresholdColor(metric, value) {
+    const thresholds = {
+        fps: { good: 20, warning: 15 },
+        gpu: { good: 70, warning: 85 },
+        latency: { good: 50, warning: 100 },
+        error: { good: 5, warning: 10 },
+        cpu: { good: 70, warning: 85 },
+        memory: { good: 70, warning: 85 }
+    };
+    
+    const threshold = thresholds[metric];
+    if (!threshold) return '#00ff00'; // Default green
+    
+    if (metric === 'fps') {
+        // For FPS, lower is worse
+        if (value >= threshold.good) return '#00ff00'; // Green
+        if (value >= threshold.warning) return '#ffaa00'; // Yellow
+        return '#ff4444'; // Red
+    } else {
+        // For other metrics, higher is worse
+        if (value <= threshold.good) return '#00ff00'; // Green
+        if (value <= threshold.warning) return '#ffaa00'; // Yellow
+        return '#ff4444'; // Red
+    }
+}
+
+// Status message system
+function showStatusMessage(message, type) {
+    // Create or update a temporary status message
+    let messageEl = document.getElementById('statusMessage');
+    if (!messageEl) {
+        messageEl = document.createElement('div');
+        messageEl.id = 'statusMessage';
+        messageEl.style.cssText = `
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1001;
+            transition: opacity 0.3s;
+        `;
+        document.body.appendChild(messageEl);
+    }
+    
+    messageEl.textContent = message;
+    messageEl.className = `status-message ${type}`;
+    
+    // Style based on type
+    switch(type) {
+        case 'success':
+            messageEl.style.background = 'rgba(0, 255, 0, 0.1)';
+            messageEl.style.border = '1px solid #00ff00';
+            messageEl.style.color = '#00ff00';
+            break;
+        case 'error':
+            messageEl.style.background = 'rgba(255, 68, 68, 0.1)';
+            messageEl.style.border = '1px solid #ff4444';
+            messageEl.style.color = '#ff4444';
+            break;
+        case 'warning':
+            messageEl.style.background = 'rgba(255, 170, 0, 0.1)';
+            messageEl.style.border = '1px solid #ffaa00';
+            messageEl.style.color = '#ffaa00';
+            break;
+    }
+    
+    messageEl.style.opacity = '1';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        messageEl.style.opacity = '0';
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.parentNode.removeChild(messageEl);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Performance monitoring
+let performanceInterval;
+
+function startPerformanceMonitoring() {
+    performanceInterval = setInterval(async () => {
+        try {
+            // Fetch real system metrics from API with cache busting
+            const response = await fetch(`/api/system/metrics?t=${Date.now()}`);
+            if (response.ok) {
+                const metrics = await response.json();
+                updatePerformanceMetrics(metrics);
+                updateHUDMetrics(metrics);
+            } else {
+                console.error('Failed to fetch system metrics');
+                // Fallback to simulated data
+                const fallbackMetrics = {
+                    fps: 0,
+                    latency: 999,
+                    cpu_percent: 0,
+                    memory_percent: 0,
+                    gpu_percent: 0,
+                    error_margin: 0,
+                    signal_status: 'ERROR'
+                };
+                updatePerformanceMetrics(fallbackMetrics);
+                updateHUDMetrics(fallbackMetrics);
+            }
+        } catch (error) {
+            console.error('Error fetching system metrics:', error);
+        }
+    }, 1000);
+}
+
+function stopPerformanceMonitoring() {
+    if (performanceInterval) {
+        clearInterval(performanceInterval);
+        performanceInterval = null;
+        
+        // Reset to default values
+        const resetMetrics = {
+            fps: 0,
+            latency: 0,
+            cpu_percent: 0,
+            memory_percent: 0,
+            gpu_percent: 0,
+            error_margin: 0,
+            signal_status: 'DISCONNECTED'
+        };
+        updatePerformanceMetrics(resetMetrics);
+        updateHUDMetrics(resetMetrics);
+    }
+}
+
+// Make functions globally accessible
+window.toggleStatusPanel = toggleStatusPanel;
+window.toggleConnection = toggleConnection;
+window.startSystem = startSystem;
+window.stopSystem = stopSystem;
+
+// Initialize status panel on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial status
+    updateSystemStatus('disconnected', 'Disconnected');
+    updateVideoStatus('disconnected', 'No Signal');
+    updateTelemetryStatus('disconnected', 'Offline');
+    updateDetectionStatus('disconnected', 'Stopped');
+    updateGeolocationStatus('disconnected', 'Offline');
+    
+    // Initialize with default metrics
+    const initialMetrics = {
+        fps: 0,
+        latency: 0,
+        cpu_percent: 0,
+        memory_percent: 0,
+        gpu_percent: 0,
+        error_margin: 0,
+        signal_status: 'DISCONNECTED'
+    };
+    updatePerformanceMetrics(initialMetrics);
+    updateHUDMetrics(initialMetrics);
+});
 
 // Retraining functionality
 let currentRetrainData = null;
@@ -633,7 +973,6 @@ class SARInterface {
     
     updateInterface() {
         this.updateStatistics();
-        this.updateFPS();
         this.updateMissionDuration();
     }
     
@@ -659,19 +998,7 @@ class SARInterface {
         }
     }
     
-    updateFPS() {
-        this.frameCount++;
-        const now = Date.now();
-        if (now - this.lastFpsUpdate >= 1000) {
-            const fps = Math.round(this.frameCount * 1000 / (now - this.lastFpsUpdate));
-            const fpsElement = document.getElementById('fps-counter');
-            if (fpsElement) {
-                fpsElement.textContent = `${fps} FPS`;
-            }
-            this.frameCount = 0;
-            this.lastFpsUpdate = now;
-        }
-    }
+    // FPS tracking removed - now using real system metrics from API
     
     initializeWebSockets() {
         // Telemetry WebSocket

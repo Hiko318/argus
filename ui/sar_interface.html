@@ -151,22 +151,63 @@
             </div>
         </div>
 
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <div class="status-left">
-                <div class="status-item">
-                    Status: <span class="status-indicator error"></span> error (i)
-                </div>
+        <!-- Status Panel - Moved to top right -->
+        <div class="status-panel">
+            <div class="status-header">
+                <span>System Status</span>
+                <button class="status-toggle" onclick="toggleStatusPanel()">−</button>
             </div>
-            <div class="status-right">
-                <div class="status-item">Video: <span class="status-indicator" id="video-status"></span></div>
-                <div class="status-item">Geolocation: <span class="status-indicator" id="geolocation-status"></span></div>
-                <div class="status-item">ADB: <span class="status-indicator"></span> srcpy: <span class="status-indicator"></span></div>
-                <div class="status-item">FFmpeg: <span class="status-indicator"></span> FFmpeg: <span class="status-indicator error"></span></div>
-                <div class="status-item">Latency: 467ms</div>
-                <div class="status-item">Disk: 73%</div>
-                <div class="status-item">Model: yolo_sar_n.onnx</div>
-                <div class="status-item">Telemetry: OCR (conf 0.84)</div>
+            <div class="status-content" id="status-content">
+                <div class="status-section">
+                    <div class="status-title">Connection</div>
+                    <div class="status-item">
+                        <span class="status-label">System:</span>
+                        <span class="status-indicator" id="system-status">disconnected</span>
+                        <span class="status-value" id="system-status-text">Disconnected</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Video:</span>
+                        <span class="status-indicator" id="video-status">disconnected</span>
+                        <span class="status-value" id="video-status-text">No Signal</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Telemetry:</span>
+                        <span class="status-indicator" id="telemetry-status">disconnected</span>
+                        <span class="status-value" id="telemetry-status-text">Offline</span>
+                    </div>
+                </div>
+                <div class="status-section">
+                    <div class="status-title">Performance</div>
+                    <div class="status-item">
+                        <span class="status-label">Latency:</span>
+                        <span class="status-value" id="latency-display">-- ms</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">FPS:</span>
+                        <span class="status-value" id="fps-status">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Disk:</span>
+                        <span class="status-value" id="disk-usage">--%</span>
+                    </div>
+                </div>
+                <div class="status-section">
+                    <div class="status-title">Services</div>
+                    <div class="status-item">
+                        <span class="status-label">Detection:</span>
+                        <span class="status-indicator" id="detection-status">disconnected</span>
+                        <span class="status-value" id="detection-status-text">Stopped</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Geolocation:</span>
+                        <span class="status-indicator" id="geolocation-status">disconnected</span>
+                        <span class="status-value" id="geolocation-status-text">Offline</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Model:</span>
+                        <span class="status-value" id="model-name">yolo_sar_n.onnx</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -296,6 +337,6 @@
 
     <!-- External Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/static/sar_interface.js"></script>
+    <script src="/static/sar_interface.js?v=2"></script>
 </body>
 </html>
