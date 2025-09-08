@@ -8,7 +8,6 @@
 *.engine filter=lfs diff=lfs merge=lfs -text
 *.pb filter=lfs diff=lfs merge=lfs -text
 *.h5 filter=lfs diff=lfs merge=lfs -text
-
 # Video Files
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.avi filter=lfs diff=lfs merge=lfs -text
@@ -17,20 +16,17 @@
 *.webm filter=lfs diff=lfs merge=lfs -text
 *.flv filter=lfs diff=lfs merge=lfs -text
 *.wmv filter=lfs diff=lfs merge=lfs -text
-
 # Audio Files
 *.wav filter=lfs diff=lfs merge=lfs -text
 *.mp3 filter=lfs diff=lfs merge=lfs -text
 *.flac filter=lfs diff=lfs merge=lfs -text
 *.aac filter=lfs diff=lfs merge=lfs -text
-
 # Image Files (large)
 *.tiff filter=lfs diff=lfs merge=lfs -text
 *.tif filter=lfs diff=lfs merge=lfs -text
 *.bmp filter=lfs diff=lfs merge=lfs -text
 *.raw filter=lfs diff=lfs merge=lfs -text
 *.dng filter=lfs diff=lfs merge=lfs -text
-
 # Archives
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.tar.gz filter=lfs diff=lfs merge=lfs -text
@@ -39,7 +35,6 @@
 *.rar filter=lfs diff=lfs merge=lfs -text
 *.7z filter=lfs diff=lfs merge=lfs -text
 *.gz filter=lfs diff=lfs merge=lfs -text
-
 # Binary Files
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.exe filter=lfs diff=lfs merge=lfs -text
@@ -51,11 +46,11 @@
 *.rpm filter=lfs diff=lfs merge=lfs -text
 *.msi filter=lfs diff=lfs merge=lfs -text
 *.dmg filter=lfs diff=lfs merge=lfs -text
-
 # Database Files
 *.db filter=lfs diff=lfs merge=lfs -text
 *.sqlite filter=lfs diff=lfs merge=lfs -text
 *.sqlite3 filter=lfs diff=lfs merge=lfs -text
-
 # Documentation (large)
 *.pdf filter=lfs diff=lfs merge=lfs -text
+trained_models/*.pt filter=lfs diff=lfs merge=lfs -text
+optimized_models/*.trt filter=lfs diff=lfs merge=lfs -text
