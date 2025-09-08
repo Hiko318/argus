@@ -34,6 +34,10 @@ from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.responses import JSONResponse
 import uvicorn
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Try to import DJI-related libraries
 try:
     from djitellopy import Tello
@@ -48,10 +52,6 @@ try:
     USB_CAPTURE_AVAILABLE = True
 except ImportError:
     USB_CAPTURE_AVAILABLE = False
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class IngestStatus(Enum):

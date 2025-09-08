@@ -965,10 +965,76 @@
         }
         
         // Package evidence
-        function packageEvidence() {
+        async function packageEvidence() {
             console.log('Packaging evidence...');
-            // This would create a comprehensive evidence package
-            alert('Evidence packaging initiated. This would create a secure package with video, metadata, and digital signatures.');
+            
+            try {
+                // Gather mission data from current state
+                const missionData = {
+                    mission_id: `mission_${Date.now()}`,
+                    mission_name: 'SAR Mission',
+                    start_time: new Date().toISOString(),
+                    end_time: new Date().toISOString(),
+                    operator: 'SAR Operator',
+                    aircraft_type: 'Drone',
+                    sensor_config: {
+                        camera_type: 'Standard',
+                        resolution: '1920x1080'
+                    },
+                    geolocation_data: {
+                        markers: detectionMarkers.length,
+                        coverage_area: 'TBD'
+                    },
+                    detection_summary: {
+                        total_detections: detectionMarkers.length,
+                        confidence_threshold: 0.5
+                    }
+                };
+
+                // Show progress modal
+                openExportModal();
+                const progressDiv = document.getElementById('export-progress');
+                const progressFill = document.getElementById('progress-fill');
+                const statusDiv = document.getElementById('export-status');
+                
+                progressDiv.style.display = 'block';
+                statusDiv.textContent = 'Initializing package...';
+
+                // Call packager via IPC if available
+                if (window.electronAPI && window.electronAPI.packageEvidence) {
+                    const result = await window.electronAPI.packageEvidence(missionData, []);
+                    
+                    // Update progress to complete
+                    progressFill.style.width = '100%';
+                    statusDiv.textContent = 'Package created successfully!';
+                    
+                    setTimeout(() => {
+                        closeExportModal();
+                        alert(`Evidence package created: ${result}`);
+                    }, 1000);
+                } else {
+                    // Fallback for testing without Electron API
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 20;
+                        progressFill.style.width = progress + '%';
+                        
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            statusDiv.textContent = 'Package created (simulation)!';
+                            setTimeout(() => {
+                                closeExportModal();
+                                alert('Evidence packaging completed (simulation mode)');
+                            }, 1000);
+                        }
+                    }, 500);
+                }
+                
+            } catch (error) {
+                console.error('Packaging failed:', error);
+                closeExportModal();
+                alert(`Packaging failed: ${error.message}`);
+            }
         }
         
         // Export modal functions

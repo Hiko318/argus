@@ -23,6 +23,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 # Import our evidence packager
 from evidence_packager import (
     EvidencePackager, EvidenceMetadata, ChainOfCustodyEntry,

@@ -440,9 +440,96 @@ class DummyDetector:
             dets.append({"bbox":[int(x),int(y),int(w),int(h)], "score": 0.5, "class":"person"})
         return dets
 
-def create_detector(model_path: str = "yolov8n.pt", **kwargs) -> YOLODetector:
-    """Factory function to create detector instance"""
-    return YOLODetector(model_path=model_path, **kwargs)
+class StubDetector:
+    """Fallback stub detector that returns empty detections when model is missing"""
+    
+    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None,
+                 confidence_threshold: float = 0.25, iou_threshold: float = 0.45,
+                 human_only: bool = True, aerial_optimized: bool = False):
+        """Initialize stub detector with same interface as YOLODetector"""
+        self.model_path = Path(model_path)
+        self.device = device or "cpu"
+        self.confidence_threshold = confidence_threshold
+        self.iou_threshold = iou_threshold
+        self.human_only = human_only
+        self.aerial_optimized = aerial_optimized
+        self.is_loaded = True  # Always "loaded" since it's a stub
+        self.class_names = ['person'] if human_only else ['person', 'vehicle', 'bicycle']
+        
+        logger.warning(f"Using stub detector - model file not found: {model_path}")
+        logger.info("Stub detector will return empty detections but keep application running")
+    
+    def load_model(self) -> bool:
+        """Stub load_model always returns True"""
+        return True
+    
+    def detect(self, image: np.ndarray) -> DetectionResult:
+        """Return empty detection results"""
+        start_time = time.time()
+        # Simulate minimal processing time
+        time.sleep(0.001)
+        inference_time = time.time() - start_time
+        
+        return DetectionResult(
+            boxes=np.empty((0, 4)),
+            scores=np.empty(0),
+            classes=np.empty(0, dtype=int),
+            class_names=self.class_names,
+            inference_time=inference_time
+        )
+    
+    def detect_batch(self, images: List[np.ndarray]) -> List[DetectionResult]:
+        """Return empty detection results for batch"""
+        return [self.detect(image) for image in images]
+    
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get stub model information"""
+        return {
+            "model_path": str(self.model_path),
+            "device": self.device,
+            "is_loaded": self.is_loaded,
+            "num_classes": len(self.class_names),
+            "class_names": self.class_names,
+            "confidence_threshold": self.confidence_threshold,
+            "iou_threshold": self.iou_threshold,
+            "is_stub": True
+        }
+    
+    def set_thresholds(self, confidence: float = None, iou: float = None):
+        """Update detection thresholds (stub implementation)"""
+        if confidence is not None:
+            self.confidence_threshold = confidence
+        if iou is not None:
+            self.iou_threshold = iou
+        logger.info(f"Stub detector thresholds updated - conf: {self.confidence_threshold}, iou: {self.iou_threshold}")
+
+def create_detector(model_path: str = "yolov8n.pt", **kwargs):
+    """Factory function to create detector instance with fallback to stub detector"""
+    model_file = Path(model_path)
+    
+    # Check if model file exists
+    if not model_file.exists():
+        logger.warning(f"Model file not found: {model_path}")
+        logger.info("Creating stub detector to keep application running")
+        return StubDetector(model_path=model_path, **kwargs)
+    
+    # Check if ultralytics is available
+    if not ULTRALYTICS_AVAILABLE:
+        logger.warning("Ultralytics not available, using stub detector")
+        return StubDetector(model_path=model_path, **kwargs)
+    
+    # Try to create real detector
+    try:
+        detector = YOLODetector(model_path=model_path, **kwargs)
+        if detector.load_model():
+            return detector
+        else:
+            logger.warning("Failed to load model, falling back to stub detector")
+            return StubDetector(model_path=model_path, **kwargs)
+    except Exception as e:
+        logger.error(f"Failed to create YOLODetector: {e}")
+        logger.info("Falling back to stub detector")
+        return StubDetector(model_path=model_path, **kwargs)
 
 def demo_detection():
     """Demo function for testing detection"""

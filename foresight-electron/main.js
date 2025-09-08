@@ -3,12 +3,14 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const fetch = require('node-fetch');
+const PackagerBridge = require('./packager-bridge');
 
 // Global references
 let mainWindow;
 let sarBackendProcess = null;
 let sarServiceUrl = 'http://localhost:8004';
 let isConnected = false;
+let packagerBridge = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -139,6 +141,9 @@ function restartSARBackend() {
 
 // IPC handlers
 function setupIPC() {
+  // Initialize packager bridge
+  packagerBridge = new PackagerBridge();
+  
   ipcMain.handle('start-sar-backend', async () => {
     startSARBackend();
     return true;
@@ -165,6 +170,38 @@ function setupIPC() {
   ipcMain.handle('open-external', async (event, url) => {
     shell.openExternal(url);
     return true;
+  });
+  
+  // Packager IPC handlers
+  ipcMain.handle('package-evidence', async (event, missionData, files = []) => {
+    try {
+      console.log('Packaging evidence request received:', missionData);
+      
+      // Create progress callback to send updates to renderer
+      const progressCallback = (progress) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('packaging-progress', progress);
+        }
+      };
+      
+      const result = await packagerBridge.packageEvidence(
+        missionData, 
+        files, 
+        null, 
+        progressCallback
+      );
+      
+      console.log('Packaging completed:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('Packaging failed:', error);
+      throw error;
+    }
+  });
+  
+  ipcMain.handle('get-packager-status', async () => {
+    return packagerBridge ? packagerBridge.getStatus() : { available: false };
   });
 }
 

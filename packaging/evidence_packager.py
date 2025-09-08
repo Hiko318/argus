@@ -19,12 +19,15 @@ from datetime import datetime, timezone
 import logging
 import subprocess
 
+# Configure logging
+logger = logging.getLogger(__name__)
+
 try:
     import cv2
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
-    logging.warning("OpenCV not available - video processing disabled")
+    logger.warning("OpenCV not available - video processing disabled")
 
 try:
     from cryptography.hazmat.primitives import hashes, serialization
