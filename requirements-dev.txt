@@ -91,7 +91,7 @@ sqlite3  # Built-in with Python
 structlog==23.2.0
 testcontainers==3.7.1
 torchvision==0.16.1  # For testing vision models
-twine==4.0.2
+twine==6.2.0
 types-pillow==10.1.0.2
 types-PyYAML==6.0.12.12
 types-requests==2.31.0.10
