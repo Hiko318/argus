@@ -55,10 +55,10 @@ scikit-image==0.22.0  # Advanced image processing
 matplotlib==3.8.2     # Plotting and visualization
 
 # Development Tools (optional for production)
-pytest==7.4.4
-pytest-asyncio==0.23.2
-black==23.12.1
-flake8==7.0.0
+pytest==8.4.2
+pytest-asyncio==1.2.0
+black==25.1.0
+flake8==7.3.0
 
 # Installation Notes:
 # 1. Install JetPack 5.1+ first (includes CUDA, cuDNN, TensorRT)
