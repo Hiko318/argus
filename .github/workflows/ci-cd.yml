@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -74,10 +74,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -89,7 +89,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -140,15 +140,15 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -171,7 +171,7 @@ jobs:
           python -m build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
@@ -186,15 +186,15 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: build-artifacts
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -221,7 +221,7 @@ jobs:
             --create-timestamps
 
       - name: Upload signed evidence package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: signed-evidence-package
           path: |
@@ -237,10 +237,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: build-artifacts
 
@@ -262,10 +262,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download signed evidence package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v5
         with:
           name: signed-evidence-package
 
