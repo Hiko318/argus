@@ -59,7 +59,7 @@ mypy==1.7.1
 myst-parser==2.0.0
 notebook==7.0.6
 onnx==1.15.0  # For ONNX model testing
-opencv-python==4.8.1.78
+opencv-python==4.12.0.88
 package-url-python==0.11.2
 pip-audit==2.6.1
 pre-commit==3.6.0
