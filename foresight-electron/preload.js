@@ -56,6 +56,18 @@ contextBridge.exposeInMainWorld(
 // Expose SAR-specific API
 contextBridge.exposeInMainWorld(
     'electronAPI', {
+        // Window controls
+        minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+        maximizeWindow: () => ipcRenderer.invoke('maximize-window'),
+        closeWindow: () => ipcRenderer.invoke('close-window'),
+        
+        // Backend API communication
+        apiRequest: (options) => ipcRenderer.invoke('api-request', options),
+        
+        // System state management
+        updateSystemState: (state) => ipcRenderer.invoke('update-system-state', state),
+        getSystemState: () => ipcRenderer.invoke('get-system-state'),
+        
         // SAR Backend controls
         startSARBackend: () => ipcRenderer.invoke('start-sar-backend'),
         stopSARBackend: () => ipcRenderer.invoke('stop-sar-backend'),
@@ -72,9 +84,23 @@ contextBridge.exposeInMainWorld(
         },
         getPackagerStatus: () => ipcRenderer.invoke('get-packager-status'),
         
-        // Event listeners
+        // Event listeners for backend status updates
+        onBackendStatus: (callback) => {
+            ipcRenderer.on('backend-status', (event, status) => callback(status));
+        },
+        onSystemStateUpdate: (callback) => {
+            ipcRenderer.on('system-state-update', (event, state) => callback(state));
+        },
         onPackagingProgress: (callback) => {
             ipcRenderer.on('packaging-progress', (event, progress) => callback(progress));
+        },
+        
+        // Remove listeners
+        removeBackendStatusListener: () => {
+            ipcRenderer.removeAllListeners('backend-status');
+        },
+        removeSystemStateListener: () => {
+            ipcRenderer.removeAllListeners('system-state-update');
         },
         removePackagingProgressListener: () => {
             ipcRenderer.removeAllListeners('packaging-progress');

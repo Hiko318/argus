@@ -51,6 +51,16 @@ class ScreenCapture:
         self._t = time.time()
         self.last_update = 0
         self.update_interval = 0.5  # Update box position every 0.5 seconds
+        
+        # Initialize box with default values
+        self.box = {"left": 0, "top": 0, "width": 1280, "height": 720}
+        
+        # Try to get the actual window position on initialization
+        try:
+            self.box = get_window_bbox(self.title)
+        except Exception as e:
+            print(f"Warning: Could not find window '{self.title}' on initialization: {e}")
+            print("Using default screen capture area. Launch scrcpy with --window-title FORESIGHT_FEED for proper capture.")
 
     def read(self):
         now = time.time()
@@ -70,9 +80,13 @@ class ScreenCapture:
         self._t = time.time()
         
         try:
-            img = np.asarray(self.sct.grab(self.box))  # BGRA
-            frame = img[...,:3]  # BGR
-            return True, frame
+            if hasattr(self, 'box') and self.box:
+                img = np.asarray(self.sct.grab(self.box))  # BGRA
+                frame = img[...,:3]  # BGR
+                return True, frame
+            else:
+                # No valid box, return placeholder frame
+                return False, np.zeros((720, 1280, 3), dtype=np.uint8)
         except Exception as e:
             print(f"Error capturing screen: {e}")
             # Return a black frame as fallback

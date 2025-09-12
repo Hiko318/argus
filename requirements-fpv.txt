@@ -1,0 +1,36 @@
+# FPV Capture and Detection Requirements
+# Core computer vision and ML
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# YOLO detection models
+ultralytics>=8.0.0  # YOLOv8/YOLOv5
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Web framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+websockets>=11.0.0
+
+# System and hardware access
+psutil>=5.9.0
+pyserial>=3.5  # For hardware communication
+pyusb>=1.2.1  # USB device access
+
+# Video processing and streaming
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.8
+
+# Async and utilities
+aiofiles>=23.0.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+
+# Optional: DJI SDK support (if available)
+# djitellopy>=2.5.0  # Uncomment if using DJI Tello
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

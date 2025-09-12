@@ -48,7 +48,7 @@ active_connections: List[WebSocket] = []
 # Request/Response Models
 class DetectionConfig(BaseModel):
     """Configuration for detection pipeline"""
-    model_path: str = "models/yolov8s.pt"
+    model_path: str = "models/yolo11s.pt"
     confidence_threshold: float = Field(0.5, ge=0.0, le=1.0)
     iou_threshold: float = Field(0.45, ge=0.0, le=1.0)
     human_only: bool = True

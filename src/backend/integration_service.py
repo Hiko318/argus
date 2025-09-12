@@ -291,7 +291,7 @@ class StreamProcessor:
 class IntegrationService:
     """Main integration service"""
     
-    def __init__(self, model_path: str = "models/yolov8s.pt"):
+    def __init__(self, model_path: str = "models/yolo11s.pt"):
         self.model_path = model_path
         self.detection_pipeline = None
         self.stream_processors: Dict[str, StreamProcessor] = {}
@@ -503,7 +503,7 @@ class IntegrationService:
         logger.info(f"Starting Integration Service on {host}:{port}")
         uvicorn.run(self.app, host=host, port=port)
 
-def create_integration_service(model_path: str = "models/yolov8s.pt") -> IntegrationService:
+def create_integration_service(model_path: str = "models/yolo11s.pt") -> IntegrationService:
     """Create integration service instance"""
     return IntegrationService(model_path)
 
@@ -551,7 +551,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Foresight Integration Service")
     parser.add_argument("--host", default="0.0.0.0", help="Host address")
     parser.add_argument("--port", type=int, default=8004, help="Port number")
-    parser.add_argument("--model", default="models/yolov8s.pt", help="YOLO model path")
+    parser.add_argument("--model", default="models/yolo11s.pt", help="YOLO model path")
     parser.add_argument("--demo", action="store_true", help="Run demo mode")
     
     args = parser.parse_args()

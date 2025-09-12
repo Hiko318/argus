@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class OptimizedHumanDetectionPipeline:
     """Optimized human detection pipeline for real-time performance"""
     
-    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None,
+    def __init__(self, model_path: str = "yolo11n.pt", device: Optional[str] = None,
                  confidence_threshold: float = 0.5, tracker_type: str = "sort",
                  enable_tensorrt: bool = False, aerial_optimized: bool = False,
                  target_fps: float = 25.0):
@@ -290,7 +290,7 @@ class OptimizedHumanDetectionPipeline:
 
 def main():
     parser = argparse.ArgumentParser(description="Optimized Human Detection Pipeline")
-    parser.add_argument("--model", default="yolov8n.pt", help="Path to YOLO model")
+    parser.add_argument("--model", default="yolo11n.pt", help="Path to YOLO model")
     parser.add_argument("--device", help="Device to use (cuda/cpu)")
     parser.add_argument("--video", help="Path to test video")
     parser.add_argument("--camera", type=int, help="Camera index for live feed")
@@ -312,7 +312,7 @@ def main():
     
     # Use trained model if available
     model_path = args.model
-    if model_path == "yolov8n.pt":
+    if model_path == "yolo11n.pt":
         # Check for trained models
         trained_models_dir = Path("trained_models")
         if trained_models_dir.exists():
@@ -320,7 +320,7 @@ def main():
             model_dirs = [d for d in trained_models_dir.iterdir() if d.is_dir()]
             if model_dirs:
                 latest_dir = max(model_dirs, key=lambda x: x.stat().st_mtime)
-                trained_model = latest_dir / "yolov8n_aerial_trained.pt"
+                trained_model = latest_dir / "yolo11n_aerial_trained.pt"
                 if trained_model.exists():
                     model_path = str(trained_model)
                     logger.info(f"Using trained model: {model_path}")

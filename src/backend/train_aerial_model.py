@@ -212,7 +212,7 @@ class AerialModelTrainer:
             logger.info(f"Starting training with YOLOv8{model_size}")
             
             # Check if base model exists
-            base_model_path = self.models_dir / f"yolov8{model_size}.pt"
+            base_model_path = self.models_dir / f"yolo11{model_size}.pt"
             if not base_model_path.exists():
                 logger.error(f"Base model not found: {base_model_path}")
                 return None
@@ -259,7 +259,7 @@ class AerialModelTrainer:
                 possible_paths = [
                     run_dir / "weights" / "best.pt",
                     run_dir / "best.pt",
-                    run_dir / f"yolov8{model_size}_trained.pt"
+                    run_dir / f"yolo11{model_size}_trained.pt"
                 ]
                 
                 for model_path in possible_paths:
@@ -268,7 +268,7 @@ class AerialModelTrainer:
                         return model_path
                 
                 # If no specific trained model found, copy the base model as "trained"
-                trained_model_path = run_dir / f"yolov8{model_size}_aerial_trained.pt"
+                trained_model_path = run_dir / f"yolo11{model_size}_aerial_trained.pt"
                 import shutil
                 shutil.copy2(base_model_path, trained_model_path)
                 logger.info(f"Training completed, model saved as: {trained_model_path}")

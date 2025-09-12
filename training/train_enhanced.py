@@ -214,7 +214,7 @@ class EnhancedSARTrainer:
             dataset_yaml = self._create_enhanced_dataset_yaml()
             
             # Initialize model
-            model_path = self.config.get('model', 'yolov8s.pt')
+            model_path = self.config.get('model', 'yolo11s.pt')
             logger.info(f"Initializing model: {model_path}")
             
             if resume_path:

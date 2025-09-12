@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class DetectionDemo:
     """Human detection pipeline demonstration"""
     
-    def __init__(self, model_path: str = "models/yolov8s.pt", 
+    def __init__(self, model_path: str = "models/yolo11s.pt", 
                  confidence: float = 0.5, aerial_mode: bool = False):
         """
         Initialize detection demo
@@ -371,7 +371,7 @@ def main():
     parser.add_argument("--source", choices=["webcam", "video", "image"], 
                        default="webcam", help="Input source type")
     parser.add_argument("--input", help="Input file path (for video/image sources)")
-    parser.add_argument("--model", default="models/yolov8s.pt", help="YOLO model path")
+    parser.add_argument("--model", default="models/yolo11s.pt", help="YOLO model path")
     parser.add_argument("--confidence", type=float, default=0.5, help="Detection confidence threshold")
     parser.add_argument("--aerial", action="store_true", help="Enable aerial optimizations")
     parser.add_argument("--no-display", action="store_true", help="Disable video display")

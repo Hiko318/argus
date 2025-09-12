@@ -1,4 +1,4 @@
-# Foresight SAR System
+# ARGUS SAR System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -6,11 +6,11 @@
 
 **AI-Powered Search and Rescue System with Real-Time Human Detection**
 
-Foresight is an advanced Search and Rescue (SAR) system that combines computer vision, geolocation services, and real-time processing to assist in locating missing persons during emergency operations. The system processes live video feeds from drones, cameras, or mobile devices to automatically detect humans and provide precise geolocation data to rescue teams.
+ARGUS is an advanced Search and Rescue (SAR) system that combines computer vision, geolocation services, and real-time processing to assist in locating missing persons during emergency operations. The system processes live video feeds from drones, cameras, or mobile devices to automatically detect humans and provide precise geolocation data to rescue teams.
 
 ## 🎯 Project Purpose
 
-Foresight is part of the **F.O.R.E.S.I.G.H.T** (Field Operations for Rescue, Emergency Search, Intelligence Gathering, and Human Tracking) master plan - a comprehensive AI-powered search and rescue ecosystem designed to save lives through advanced technology.
+ARGUS is part of the **A.R.G.U.S** (Autonomous Rescue and Ground-based Unified System) master plan - a comprehensive AI-powered search and rescue ecosystem designed to save lives through advanced technology.
 
 ### Core Capabilities
 - **Real-Time Human Detection**: YOLO-based AI models optimized for aerial and ground-based search scenarios
@@ -60,54 +60,63 @@ To provide search and rescue teams with cutting-edge AI technology that enhances
 2. **Set up Python environment**
    ```bash
    python -m venv .venv
-   source .venv/bin/activate  # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
+   # Windows:
+   .venv\Scripts\activate
+   # Linux/macOS:
+   source .venv/bin/activate
+   
+   # Install dependencies (choose based on your platform)
+   pip install -r requirements.txt          # Standard installation
+   pip install -r requirements-jetson.txt   # NVIDIA Jetson optimized
    ```
 
-3. **Configure environment**
+3. **Download AI models**
+   ```bash
+   # Models are hosted in GitHub releases due to size
+   python models/download_models.py
+   # Or manually download from: https://github.com/Hiko318/foresight/releases
+   ```
+
+4. **Configure environment**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your configuration (API keys, hardware settings)
    ```
 
-4. **Install Electron app dependencies**
+5. **Install desktop app dependencies**
    ```bash
    cd foresight-electron
    npm install
    cd ..
    ```
 
-5. **Configure system settings**
-   ```bash
-   # Configuration files are located in configs/
-   cp configs/dji_config.json.example configs/dji_config.json
-   # Edit configuration files as needed
-   ```
-
 ### Running the System
 
-**Option 1: Full System (Recommended)**
+**Option 1: Quick Start (Recommended)**
 ```bash
-# Windows
-.\start_all.ps1
+# Run main application with simulation data
+python main.py --simulate
 
-# Linux/macOS
-./start_all.sh
+# In a separate terminal, start the desktop app
+cd foresight-electron
+npm start
 ```
 
-**Option 2: Individual Components**
+**Option 2: Production Mode**
 ```bash
 # Terminal 1: Backend service
-python src/backend/main.py
+python main.py
 
 # Terminal 2: Desktop application
-cd foresight-electron && npm start
+cd foresight-electron
+npm start
 ```
 
-**Option 3: Development Mode**
+**Option 3: Web-Only Interface**
 ```bash
-# Run with simulation data
+# Start backend only
 python main.py --simulate
+# Access web interface at http://localhost:8004
 ```
 
 ## 📁 Repository Structure

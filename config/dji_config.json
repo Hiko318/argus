@@ -11,6 +11,36 @@
       "video_codec": "h264",
       "audio_enabled": false
     },
+    "rtmp_server": {
+      "enabled": true,
+      "port": 1935,
+      "app_name": "live",
+      "stream_key": "dji_stream",
+      "max_connections": 5,
+      "timeout": 30,
+      "relay_to_rtsp": true,
+      "rtsp_port": 8554,
+      "ffmpeg_options": {
+        "preset": "ultrafast",
+        "tune": "zerolatency",
+        "codec": "libx264",
+        "crf": 23
+      }
+    },
+    "phone_bridge": {
+      "enabled": true,
+      "connection_type": "rtmp",
+      "dji_fly_integration": true,
+      "auto_detect_stream": true,
+      "stream_timeout": 30,
+      "reconnect_attempts": 5,
+      "quality_profiles": {
+        "auto": true,
+        "preferred_resolution": [1920, 1080],
+        "max_bitrate": 8000,
+        "adaptive_bitrate": true
+      }
+    },
     "recorded_data": {
       "video_path": "data/recordings/test_flight.mp4",
       "telemetry_path": "data/recordings/test_telemetry.json",

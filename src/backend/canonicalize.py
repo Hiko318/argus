@@ -668,7 +668,7 @@ if __name__ == "__main__":
     )
     
     model = ModelVersion(
-        model_name="yolov8n",
+        model_name="yolo11n",
         version="1.0.0",
         hash_sha256="abc123...",
         training_date="2024-01-01",

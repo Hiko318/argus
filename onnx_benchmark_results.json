@@ -1,0 +1,37 @@
+{
+  "model_path": "models/yolov8n.onnx",
+  "providers": [
+    "CPUExecutionProvider"
+  ],
+  "input_info": {
+    "name": "images",
+    "shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "type": "tensor(float)"
+  },
+  "output_info": [
+    {
+      "name": "output0",
+      "shape": [
+        1,
+        84,
+        8400
+      ],
+      "type": "tensor(float)"
+    }
+  ],
+  "benchmark_stats": {
+    "avg_latency_ms": 137.23803200293332,
+    "min_latency_ms": 92.55910001229495,
+    "max_latency_ms": 195.8007999928668,
+    "std_latency_ms": 28.56330267873155,
+    "avg_fps": 7.286609880697109,
+    "num_runs": 50,
+    "warmup_runs": 10
+  },
+  "timestamp": "2025-09-08 17:21:42"
+}

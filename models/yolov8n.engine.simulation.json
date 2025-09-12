@@ -1,0 +1,13 @@
+{
+  "simulated": true,
+  "original_model": "models/yolov8n.pt",
+  "target_precision": "fp16",
+  "target_input_size": 640,
+  "target_batch_size": 1,
+  "note": "This is a simulation. Actual TensorRT export requires TensorRT installation.",
+  "recommendations": [
+    "Deploy on NVIDIA Jetson device with TensorRT",
+    "Use ONNX export as alternative",
+    "Consider cloud deployment with TensorRT support"
+  ]
+}

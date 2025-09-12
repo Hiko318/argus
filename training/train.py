@@ -184,7 +184,7 @@ class SARTrainer:
         
         # Set default SAR-optimized parameters
         default_config = {
-            'model': 'yolov8n.pt',
+            'model': 'yolo11n.pt',
             'data': 'data/training/sar_dataset.yaml',
             'epochs': 100,
             'imgsz': 1280,
@@ -564,8 +564,8 @@ def main():
                        help='Path to training configuration file')
     parser.add_argument('--wandb', action='store_true',
                        help='Enable Weights & Biases logging')
-    parser.add_argument('--model', type=str, default='yolov8n.pt',
-                       help='Model to use (yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)')
+    parser.add_argument('--model', type=str, default='yolo11n.pt',
+                        help='Model to use (yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt)')
     parser.add_argument('--data', type=str, default='data/training/sar_dataset.yaml',
                        help='Path to dataset configuration')
     parser.add_argument('--epochs', type=int, default=100,

@@ -15,6 +15,6 @@
     "openstreetmap",
     "opentopomap"
   ],
-  "cache_dir": "C:\\Users\\Admin\\Desktop\\foresight\\data\\maps",
+  "cache_dir": "C:\\Users\\Admin\\Desktop\\argus\\data\\maps",
   "max_cache_size_mb": 1000
 }

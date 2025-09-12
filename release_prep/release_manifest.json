@@ -1,0 +1,22 @@
+{
+  "version": "0.9",
+  "release_date": "2024-01-09",
+  "assets": {
+    "yolov8n.pt": {
+      "size_mb": 6.25,
+      "sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+      "download_method": "github_release",
+      "note": "Available as GitHub release asset"
+    },
+    "yolov8n.onnx": {
+      "size_mb": 12.24,
+      "sha256": "5d55f561445f0a2825694e7514f32f5ebd1ba7946dfd9ecaeb76eb86c1c50064",
+      "download_method": "github_release",
+      "note": "Available as GitHub release asset"
+    }
+  },
+  "download_instructions": {
+    "small_models": "Download directly from GitHub Releases",
+    "large_models": "Use download_models.py script or manual download from external storage"
+  }
+}

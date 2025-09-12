@@ -103,7 +103,7 @@ class DeviceManager:
 class YOLODetector:
     """YOLOv8 object detector optimized for human detection with aerial dataset support"""
     
-    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None, 
+    def __init__(self, model_path: str = "yolo11n.pt", device: Optional[str] = None, 
                  confidence_threshold: float = 0.25, iou_threshold: float = 0.45,
                  human_only: bool = True, aerial_optimized: bool = False):
         """
@@ -443,7 +443,7 @@ class DummyDetector:
 class StubDetector:
     """Fallback stub detector that returns empty detections when model is missing"""
     
-    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None,
+    def __init__(self, model_path: str = "yolo11n.pt", device: Optional[str] = None,
                  confidence_threshold: float = 0.25, iou_threshold: float = 0.45,
                  human_only: bool = True, aerial_optimized: bool = False):
         """Initialize stub detector with same interface as YOLODetector"""
@@ -503,7 +503,7 @@ class StubDetector:
             self.iou_threshold = iou
         logger.info(f"Stub detector thresholds updated - conf: {self.confidence_threshold}, iou: {self.iou_threshold}")
 
-def create_detector(model_path: str = "yolov8n.pt", **kwargs):
+def create_detector(model_path: str = "yolo11n.pt", **kwargs):
     """Factory function to create detector instance with fallback to stub detector"""
     model_file = Path(model_path)
     
@@ -536,7 +536,7 @@ def demo_detection():
     import argparse
     
     parser = argparse.ArgumentParser(description="YOLOv8 Detection Demo")
-    parser.add_argument("--model", default="yolov8n.pt", help="Path to YOLOv8 model")
+    parser.add_argument("--model", default="yolo11n.pt", help="Path to YOLO11 model")
     parser.add_argument("--device", help="Device to use (cuda/cpu)")
     parser.add_argument("--image", help="Path to test image")
     parser.add_argument("--conf", type=float, default=0.25, help="Confidence threshold")

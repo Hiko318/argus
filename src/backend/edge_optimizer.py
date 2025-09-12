@@ -571,7 +571,7 @@ def demo_optimization():
     logger.info("Starting edge optimization demo")
     
     # Check if model exists
-    model_path = "models/yolov8s.pt"
+    model_path = "models/yolo11s.pt"
     if not Path(model_path).exists():
         logger.error(f"Model not found: {model_path}")
         return

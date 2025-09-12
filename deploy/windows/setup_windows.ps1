@@ -295,7 +295,7 @@ logging:
   
 models:
   path: "$($DataPath.Replace('\', '//'))/models"
-  detection_model: "yolov8n.pt"
+  detection_model: "yolo11n.pt"
   
 evidence:
   path: "$($DataPath.Replace('\', '//'))/evidence"

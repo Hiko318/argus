@@ -504,6 +504,22 @@
                             <span class="telemetry-label">Heading</span>
                             <span class="telemetry-value" id="heading">0°</span>
                         </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">FPS</span>
+                            <span class="telemetry-value" id="fps">--</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">Latency</span>
+                            <span class="telemetry-value" id="latency">--</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">CPU</span>
+                            <span class="telemetry-value" id="cpu-usage">--</span>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="telemetry-label">GPU</span>
+                            <span class="telemetry-value" id="gpu-usage">--</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1091,6 +1107,34 @@
             }
             if (data.heading !== undefined) {
                 document.getElementById('heading').textContent = data.heading + '°';
+            }
+            if (data.fps !== undefined) {
+                const fpsElement = document.getElementById('fps');
+                if (fpsElement) {
+                    fpsElement.textContent = Math.round(data.fps);
+                    fpsElement.style.color = data.fps < 15 ? '#ff4444' : data.fps < 25 ? '#ffaa00' : '#00ff00';
+                }
+            }
+            if (data.latency !== undefined) {
+                const latencyElement = document.getElementById('latency');
+                if (latencyElement) {
+                    latencyElement.textContent = Math.round(data.latency) + 'ms';
+                    latencyElement.style.color = data.latency > 100 ? '#ff4444' : data.latency > 50 ? '#ffaa00' : '#00ff00';
+                }
+            }
+            if (data.cpu_usage !== undefined) {
+                const cpuElement = document.getElementById('cpu-usage');
+                if (cpuElement) {
+                    cpuElement.textContent = Math.round(data.cpu_usage) + '%';
+                    cpuElement.style.color = data.cpu_usage > 80 ? '#ff4444' : data.cpu_usage > 60 ? '#ffaa00' : '#00ff00';
+                }
+            }
+            if (data.gpu_usage !== undefined) {
+                const gpuElement = document.getElementById('gpu-usage');
+                if (gpuElement) {
+                    gpuElement.textContent = Math.round(data.gpu_usage) + '%';
+                    gpuElement.style.color = data.gpu_usage > 80 ? '#ff4444' : data.gpu_usage > 60 ? '#ffaa00' : '#00ff00';
+                }
             }
         }
         

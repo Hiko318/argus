@@ -1,37 +1,34 @@
 # SAR-Optimized YOLOv8 Training Configuration
 # Comprehensive configuration for Search and Rescue operations with enhanced metrics tracking
 
-# Model configuration
-model: yolov8n.pt  # Base model (yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt)
+# Model configuration - Using YOLOv11 for maximum accuracy
+model: yolo11x.pt  # YOLOv11 Extra Large for highest accuracy
 
 # Dataset configuration
 data: 'data/training/sar_dataset.yaml'
-  
-  # Class definitions for SAR operations (enhanced with pets)
-  nc: 6  # number of classes
-  names:
-    0: person
-    1: vehicle
-    2: structure
-    3: debris
-    4: dog
-    5: cat
 
-# Training hyperparameters (optimized for covered human detection)
+# Class definitions optimized for Human, Dog, Cat detection
+nc: 3  # number of classes
+names:
+  0: person
+  1: dog
+  2: cat
+
+# Training hyperparameters (optimized for maximum confidence 100%)
 hyp:
-  # Learning rate settings
-  lr0: 0.008         # slightly lower initial learning rate for stability
-  lrf: 0.005         # lower final learning rate for fine-tuning
-  momentum: 0.937    # SGD momentum
-  weight_decay: 0.0008  # increased weight decay for better generalization
-  warmup_epochs: 5.0    # longer warmup for stability
-  warmup_momentum: 0.8  # warmup initial momentum
-  warmup_bias_lr: 0.1   # warmup initial bias lr
+  # Learning rate settings for maximum accuracy
+  lr0: 0.001         # very low initial learning rate for precision
+  lrf: 0.0001        # extremely low final learning rate for fine-tuning
+  momentum: 0.95     # higher momentum for stability
+  weight_decay: 0.001   # higher weight decay for better generalization
+  warmup_epochs: 10.0   # longer warmup for maximum stability
+  warmup_momentum: 0.9  # higher warmup momentum
+  warmup_bias_lr: 0.05  # lower warmup bias lr for precision
   
-  # Loss function weights (enhanced for covered humans)
-  box: 0.075         # increased box loss for better localization
-  cls: 0.6           # increased cls loss for better classification
-  dfl: 1.8           # increased dfl loss for better distribution focal loss
+  # Loss function weights (optimized for maximum confidence)
+  box: 0.1           # higher box loss for precise localization
+  cls: 1.0           # maximum cls loss for confident classification
+  dfl: 2.5           # higher dfl loss for better distribution
   
   # Data augmentation (enhanced for covered/occluded detection)
   hsv_h: 0.02        # increased HSV-Hue for lighting variations

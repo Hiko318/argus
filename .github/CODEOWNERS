@@ -1,0 +1,56 @@
+# CODEOWNERS file for Foresight SAR System
+# This file defines who owns and reviews different parts of the codebase
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - fallback for any files not explicitly covered
+* @Hiko318
+
+# Core system components
+/src/backend/ @Hiko318
+/src/ui/ @Hiko318
+/main.py @Hiko318
+
+# AI/ML components
+/training/ @Hiko318
+/models/ @Hiko318
+/aerial_training/ @Hiko318
+/vision/ @Hiko318
+train_yolo.py @Hiko318
+
+# Desktop application
+/foresight-electron/ @Hiko318
+
+# Configuration and deployment
+/configs/ @Hiko318
+/deploy/ @Hiko318
+/docker/ @Hiko318
+/packaging/ @Hiko318
+start_all.* @Hiko318
+
+# Documentation
+/docs/ @Hiko318
+*.md @Hiko318
+
+# CI/CD and automation
+/.github/ @Hiko318
+/ci/ @Hiko318
+/scripts/ @Hiko318
+Makefile @Hiko318
+
+# Dependencies and requirements
+requirements*.txt @Hiko318
+package*.json @Hiko318
+
+# Security and compliance
+SECURITY.md @Hiko318
+LICENSE @Hiko318
+.gitignore @Hiko318
+
+# Testing
+/tests/ @Hiko318
+pytest.ini @Hiko318
+conftest.py @Hiko318
+
+# Release management
+/release_prep/ @Hiko318
+CHANGELOG.md @Hiko318

@@ -48,6 +48,10 @@ class SARTelemetry:
     heading: float
     speed: float
     battery: int
+    fps: float = 0.0
+    latency: float = 0.0
+    cpu_usage: float = 0.0
+    gpu_usage: float = 0.0
     timestamp: float = None
     
     def __post_init__(self):
@@ -152,6 +156,11 @@ class SARService:
         # Initialize logging and storage services
         self.logging_service = get_logging_service()
         self.storage_service = get_storage_service()
+        
+        # Performance tracking
+        self.current_fps = 0.0
+        self.inference_time = 0.0
+        self.error_count = 0
         
         # Video recording for storage
         self.video_frames_buffer = []
@@ -887,7 +896,7 @@ class SARService:
             
             # Initialize detection pipeline
             self.detection_pipeline = DetectionPipeline(
-                model_path="models/yolov8n.pt",
+                model_path="models/yolo11n.pt",
                 human_only=True,
                 aerial_optimized=True
             )
@@ -910,6 +919,66 @@ class SARService:
                     telemetry_data = self.telemetry_service.get_latest_telemetry()
                     
                     if telemetry_data:
+                        # Get performance metrics
+                        try:
+                            # Get CPU usage with proper interval
+                            cpu_percent = psutil.cpu_percent(interval=None)  # Non-blocking call
+                            if cpu_percent == 0.0:  # If still 0, try with interval
+                                cpu_percent = psutil.cpu_percent(interval=0.01)  # Very short interval
+                            
+                            # Get GPU usage if available
+                            gpu_percent = 0.0
+                            try:
+                                import GPUtil
+                                gpus = GPUtil.getGPUs()
+                                if gpus:
+                                    gpu_percent = gpus[0].load * 100
+                            except ImportError:
+                                # Try with nvidia-ml-py if available
+                                try:
+                                    import pynvml
+                                    pynvml.nvmlInit()
+                                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                                    utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                                    gpu_percent = utilization.gpu
+                                except:
+                                    # Try with torch if CUDA is available
+                                    try:
+                                        import torch
+                                        if torch.cuda.is_available():
+                                            # Estimate GPU usage based on memory usage
+                                            memory_used = torch.cuda.memory_allocated(0)
+                                            memory_total = torch.cuda.get_device_properties(0).total_memory
+                                            gpu_percent = (memory_used / memory_total) * 100
+                                    except:
+                                        gpu_percent = 0.0
+                            except:
+                                gpu_percent = 0.0
+                            
+                            # Get FPS and inference time from detection pipeline if available
+                            if hasattr(self, 'detection_pipeline') and self.detection_pipeline:
+                                # Get current FPS from pipeline
+                                if hasattr(self.detection_pipeline, 'fps_history') and self.detection_pipeline.fps_history:
+                                    current_fps = sum(self.detection_pipeline.fps_history[-5:]) / min(5, len(self.detection_pipeline.fps_history))
+                                else:
+                                    current_fps = 0.0
+                                
+                                # Get average processing time as latency
+                                if hasattr(self.detection_pipeline, 'detection_history') and self.detection_pipeline.detection_history:
+                                    recent_frames = self.detection_pipeline.detection_history[-5:]
+                                    inference_time = sum(frame.processing_time_ms for frame in recent_frames) / len(recent_frames)
+                                else:
+                                    inference_time = 0.0
+                            else:
+                                current_fps = 0.0
+                                inference_time = 0.0
+                                
+                        except Exception as e:
+                            cpu_percent = 0.0
+                            gpu_percent = 0.0
+                            current_fps = 0.0
+                            inference_time = 0.0
+                        
                         # Convert to SAR format
                         sar_telemetry = SARTelemetry(
                             gps={
@@ -919,7 +988,11 @@ class SARService:
                             altitude=telemetry_data.altitude_agl,
                             heading=telemetry_data.yaw,
                             speed=getattr(telemetry_data, 'ground_speed', 0.0),
-                            battery=getattr(telemetry_data, 'battery_level', 100)
+                            battery=getattr(telemetry_data, 'battery_level', 100),
+                            fps=current_fps,
+                            latency=inference_time,
+                            cpu_usage=cpu_percent,
+                            gpu_usage=gpu_percent
                         )
                         
                         # Log telemetry data periodically

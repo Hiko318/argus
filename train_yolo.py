@@ -64,8 +64,9 @@ def train_yolo_model():
     """Train YOLO model with SAR dataset"""
     try:
         # Check if dataset configuration exists
-        if not Path('sar_dataset.yaml').exists():
-            logger.error("sar_dataset.yaml not found. Please ensure the dataset configuration file exists.")
+        dataset_config = 'data/training/sar_dataset.yaml'
+        if not Path(dataset_config).exists():
+            logger.error(f"{dataset_config} not found. Please ensure the dataset configuration file exists.")
             return False
         
         # Check dataset structure
@@ -77,16 +78,16 @@ def train_yolo_model():
             logger.info("To add sample data, place images in data/sar/images/train/ and labels in data/sar/labels/train/")
         
         # Initialize YOLO model
-        logger.info("Initializing YOLOv8n model...")
-        model = YOLO('yolov8n.pt')  # Load pretrained YOLOv8n model
+        logger.info("Initializing YOLOv11x model for maximum accuracy...")
+        model = YOLO('yolo11x.pt')  # Load pretrained YOLOv11x model for highest accuracy
         
         # Training parameters
         training_args = {
-            'data': 'sar_dataset.yaml',
-            'epochs': 80,
+            'data': 'data/training/sar_dataset.yaml',
+            'epochs': 200,  # More epochs for maximum accuracy
             'imgsz': 1280,
             'batch': 12,
-            'device': 0,  # Use GPU if available, otherwise CPU
+            'device': 'cpu',  # Use CPU for training
             'workers': 4,
             'project': 'runs/detect',
             'name': 'sar_training',
@@ -105,16 +106,16 @@ def train_yolo_model():
             'fraction': 1.0,  # Use full dataset
             'profile': False,  # Profile ONNX and TensorRT speeds during training
             'freeze': None,  # Freeze layers: backbone=10, first3=0,1,2
-            'lr0': 0.01,  # Initial learning rate
-            'lrf': 0.01,  # Final learning rate (lr0 * lrf)
-            'momentum': 0.937,  # SGD momentum/Adam beta1
-            'weight_decay': 0.0005,  # Optimizer weight decay
-            'warmup_epochs': 3.0,  # Warmup epochs
-            'warmup_momentum': 0.8,  # Warmup initial momentum
-            'warmup_bias_lr': 0.1,  # Warmup initial bias lr
-            'box': 7.5,  # Box loss gain
-            'cls': 0.5,  # Class loss gain
-            'dfl': 1.5,  # DFL loss gain
+            'lr0': 0.001,  # Very low initial learning rate for precision
+            'lrf': 0.0001,  # Extremely low final learning rate
+            'momentum': 0.95,  # Higher momentum for stability
+            'weight_decay': 0.001,  # Higher weight decay for generalization
+            'warmup_epochs': 10.0,  # Longer warmup for stability
+            'warmup_momentum': 0.9,  # Higher warmup momentum
+            'warmup_bias_lr': 0.05,  # Lower warmup bias lr for precision
+            'box': 0.1,  # Higher box loss for precise localization
+            'cls': 1.0,  # Maximum cls loss for confident classification
+            'dfl': 2.5,  # Higher DFL loss for better distribution
             'pose': 12.0,  # Pose loss gain
             'kobj': 2.0,  # Keypoint obj loss gain
             'label_smoothing': 0.0,  # Label smoothing
@@ -123,6 +124,7 @@ def train_yolo_model():
             'mask_ratio': 4,  # Mask downsample ratio
             'dropout': 0.0,  # Use dropout regularization
             'val': True,  # Validate/test during training
+            'conf': 0.99,  # Maximum confidence threshold (99% - closest to 100%)
         }
         
         logger.info("Starting YOLO training...")

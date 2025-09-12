@@ -2,7 +2,7 @@
   "privacy_settings": {
     "version": "1.0",
     "last_updated": "2024-01-15T00:00:00Z",
-    "description": "Privacy-first default configuration for Foresight SAR system",
+    "description": "Privacy-first default configuration for ARGUS SAR system",
     "enforcement_level": "strict"
   },
   

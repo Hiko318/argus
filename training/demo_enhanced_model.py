@@ -41,7 +41,7 @@ def load_enhanced_config():
         config = yaml.safe_load(f)
     
     logger.info("Enhanced Configuration Loaded:")
-    logger.info(f"Model: {config.get('model', 'yolov8s.pt')}")
+    logger.info(f"Model: {config.get('model', 'yolo11s.pt')}")
     logger.info(f"Classes: {config.get('nc', 6)}")
     logger.info(f"Image Size: {config.get('imgsz', 736)}")
     logger.info(f"Epochs: {config.get('epochs', 150)}")
@@ -54,8 +54,8 @@ def download_pretrained_model():
     logger.info("Downloading pre-trained YOLOv8s model...")
     
     try:
-        # This will download yolov8s.pt if not already present
-        model = YOLO('yolov8s.pt')
+        # This will download yolo11s.pt if not already present
+         model = YOLO('yolo11s.pt')
         logger.info("✓ Pre-trained model loaded successfully")
         return model
     except Exception as e:

@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-09-08 17:18:27",
+  "device": "cpu",
+  "system_info": {
+    "cpu_count": 12,
+    "memory_gb": 7.405101776123047,
+    "gpu_available": false,
+    "gpu_name": null
+  },
+  "results": [
+    {
+      "model_name": "yolov8n",
+      "device": "cpu",
+      "image_size": [
+        640,
+        640
+      ],
+      "batch_size": 1,
+      "avg_fps": 2.62,
+      "avg_latency_ms": 381.14,
+      "min_latency_ms": 170.46,
+      "max_latency_ms": 573.59,
+      "memory_usage_mb": -74.79,
+      "gpu_memory_mb": null,
+      "total_inferences": 50,
+      "warmup_runs": 10
+    }
+  ]
+}

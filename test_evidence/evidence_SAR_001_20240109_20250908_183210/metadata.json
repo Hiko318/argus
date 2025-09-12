@@ -1,0 +1,23 @@
+{
+  "case_id": "SAR_001_20240109",
+  "operator": "test_operator",
+  "agency": "Search and Rescue Division",
+  "incident_type": "Search and Rescue",
+  "location": "Test Location",
+  "timestamp": "2024-01-09T12:00:00Z",
+  "equipment": "DJI Mavic 3, Thermal Camera",
+  "weather": "Clear, 15°C, Light winds",
+  "mission_notes": "Test mission for evidence packaging validation",
+  "gps_coordinates": {
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  },
+  "detection_results": [
+    {
+      "timestamp": "2024-01-09T12:05:00Z",
+      "confidence": 0.85,
+      "bbox": [100, 150, 200, 250],
+      "class": "person"
+    }
+  ]
+}

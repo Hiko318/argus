@@ -1,11 +1,14 @@
 {
-  "name": "foresight-electron",
+  "name": "argus-electron",
   "version": "1.0.0",
-  "description": "Foresight SAR System - Search and Rescue Drone Vision Application",
+  "description": "ARGUS SAR System - Search and Rescue Drone Vision Application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
+    "dist": "electron-builder --publish=never",
+    "dist:win": "electron-builder --win --publish=never",
+    "dist:linux": "electron-builder --linux --publish=never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -27,14 +30,45 @@
     "ws": "^8.14.2"
   },
   "build": {
-    "appId": "com.foresight.app",
-    "productName": "Foresight",
+    "appId": "com.argus.sar",
+    "productName": "ARGUS SAR",
+    "copyright": "Copyright © 2024 ARGUS SAR Team",
     "win": {
-      "target": "nsis",
-      "icon": "assets/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.svg"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.svg",
+      "category": "Utility"
     },
     "directories": {
       "output": "dist"
-    }
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/express/**/*",
+      "node_modules/node-fetch/**/*",
+      "node_modules/ws/**/*"
+    ]
   }
 }

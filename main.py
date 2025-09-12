@@ -40,7 +40,7 @@ except ImportError:
 
 def check_environment():
     """Check system environment and dependencies."""
-    print("🔍 Foresight SAR System - Environment Check")
+    print("🔍 ARGUS SAR System - Environment Check")
     print("=" * 50)
     
     # System info
@@ -226,7 +226,7 @@ def run_legacy_server():
     from fastapi.responses import JSONResponse, StreamingResponse
     from fastapi.middleware.cors import CORSMiddleware
     
-    app = FastAPI(title="Foresight SAR System", version="1.0.0")
+    app = FastAPI(title="ARGUS SAR System", version="1.0.0")
     
     app.add_middleware(
         CORSMiddleware,
@@ -238,7 +238,7 @@ def run_legacy_server():
     
     @app.get("/")
     def root():
-        return {"message": "Foresight SAR System - Simulation Mode", "mode": "simulation"}
+        return {"message": "ARGUS SAR System - Simulation Mode", "mode": "simulation"}
     
     @app.get("/health")
     def health_check():
@@ -269,7 +269,7 @@ def run_production_mode():
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Foresight SAR System - AI-Powered Search and Rescue",
+        description="ARGUS SAR System - AI-Powered Search and Rescue",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -278,7 +278,7 @@ Examples:
   python main.py --test-mode      # Run tests
   python main.py                  # Start production system
 
-For more information, visit: https://github.com/Hiko318/foresight
+For more information, visit: https://github.com/Hiko318/argus
         """
     )
     
@@ -303,7 +303,7 @@ For more information, visit: https://github.com/Hiko318/foresight
     parser.add_argument(
         "--version", 
         action="version", 
-        version="Foresight SAR System v1.0.0"
+        version="ARGUS SAR System v1.0.0"
     )
     
     args = parser.parse_args()

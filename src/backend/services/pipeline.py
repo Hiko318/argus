@@ -33,7 +33,7 @@ class SarPipeline:
         self._yolo = None
         try:
             from ultralytics import YOLO
-            model_path = os.environ.get("FORESIGHT_YOLO", "yolov8n.pt")
+            model_path = os.environ.get("FORESIGHT_YOLO", "yolo11n.pt")
             self._yolo = YOLO(model_path)
         except Exception:
             self._yolo = None  # ok: we’ll simulate detections

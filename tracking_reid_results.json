@@ -1,0 +1,16 @@
+{
+  "total_frames": 70,
+  "total_detections": 143,
+  "total_tracks": 3,
+  "id_switches": 0,
+  "track_lifetimes": [],
+  "tracking_accuracy": 0.86,
+  "active_tracks": 1,
+  "processing_time": 0.12397289276123047,
+  "fps": 564.6395630601177,
+  "total_matches": 129,
+  "total_ground_truth": 150,
+  "unique_tracks": 3,
+  "ground_truth_persons": 3,
+  "test_status": "PASSED"
+}

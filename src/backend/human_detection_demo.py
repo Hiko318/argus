@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class HumanDetectionDemo:
     """Demo class for human detection pipeline"""
     
-    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None,
+    def __init__(self, model_path: str = "yolo11n.pt", device: Optional[str] = None,
                  confidence_threshold: float = 0.25, tracker_type: str = "sort",
                  enable_tensorrt: bool = False, aerial_optimized: bool = False):
         """
@@ -59,7 +59,7 @@ class HumanDetectionDemo:
             model_dirs = [d for d in trained_model_path.iterdir() if d.is_dir() and "aerial" in d.name]
             if model_dirs:
                 latest_model_dir = max(model_dirs, key=lambda x: x.stat().st_mtime)
-                trained_model = latest_model_dir / "yolov8n_aerial_trained.pt"
+                trained_model = latest_model_dir / "yolo11n_aerial_trained.pt"
                 if trained_model.exists():
                     self.model_path = str(trained_model)
                     logger.info(f"Using trained aerial model: {self.model_path}")
@@ -428,7 +428,7 @@ class HumanDetectionDemo:
 def main():
     """Main demo function"""
     parser = argparse.ArgumentParser(description="Human Detection Pipeline Demo")
-    parser.add_argument("--model", default="yolov8n.pt", help="Path to YOLO model")
+    parser.add_argument("--model", default="yolo11n.pt", help="Path to YOLO model")
     parser.add_argument("--device", help="Device to use (cuda/cpu/auto)")
     parser.add_argument("--video", help="Path to test video")
     parser.add_argument("--camera", type=int, help="Camera device ID for live feed")

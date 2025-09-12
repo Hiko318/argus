@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPV Live Feed - Foresight</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .status {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-indicator {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .status-disconnected {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+        }
+
+        .video-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .controls-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-panel h3 {
+            margin-bottom: 1rem;
+            color: #00ff88;
+            font-size: 1.1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        select {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        button {
+            background: #00ff88;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: #ff4444 !important;
+            color: white !important;
+        }
+
+        .btn-danger:hover {
+            background: #cc3333 !important;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .log-panel {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+            opacity: 0.9;
+        }
+
+        .log-error {
+            color: #ff6b6b;
+        }
+
+        .log-success {
+            color: #00ff88;
+        }
+
+        .log-info {
+            color: #74c0fc;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎯 FORESIGHT FPV</div>
+        <div class="status">
+            <div id="connectionStatus" class="status-indicator status-disconnected">Disconnected</div>
+            <div id="fpvStatus" class="status-indicator status-disconnected">No Feed</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="video-section">
+            <div class="video-container">
+                <img id="videoFeed" class="video-feed" src="/api/video_feed" alt="Video Feed">
+                <div class="video-overlay" id="videoOverlay">
+                    <div>Mode: <span id="currentMode">Screen</span></div>
+                    <div>FPS: <span id="currentFps">0</span></div>
+                    <div>Detections: <span id="detectionCount">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-panel">
+                <h3>📹 Video Source</h3>
+                <div class="control-group">
+                    <label for="videoSource">Select Source:</label>
+                    <select id="videoSource">
+                        <option value="screen">Screen Capture</option>
+                    </select>
+                </div>
+                <button id="startFpvBtn" onclick="startFpvCapture()">Start FPV Capture</button>
+                <button id="stopFpvBtn" onclick="stopFpvCapture()" disabled>Stop FPV Capture</button>
+            </div>
+
+            <div class="control-panel">
+                <h3>🎯 Detection</h3>
+                <button id="toggleDetectionBtn" onclick="toggleDetection()">Enable Detection</button>
+                <button id="toggleSarBtn" onclick="toggleSarMode()">Toggle SAR Mode</button>
+            </div>
+
+            <div class="control-panel">
+                <h3>📊 Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalDetections">0</div>
+                        <div class="stat-label">Total Detections</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="peopleDetected">0</div>
+                        <div class="stat-label">People Found</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgFps">0</div>
+                        <div class="stat-label">Avg FPS</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="uptime">00:00</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <h3>📝 Activity Log</h3>
+                <div class="log-panel" id="logPanel">
+                    <div class="log-entry log-info">System initialized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let startTime = Date.now();
+        let detectionEnabled = false;
+        let sarModeEnabled = false;
+        let fpvActive = false;
+
+        // Initialize the application
+        async function init() {
+            await loadVideoSources();
+            connectWebSocket();
+            startStatsUpdate();
+            addLog('Application started', 'info');
+        }
+
+        // Load available video sources
+        async function loadVideoSources() {
+            try {
+                const response = await fetch('/api/fpv/sources');
+                const sources = await response.json();
+                
+                const select = document.getElementById('videoSource');
+                select.innerHTML = '<option value="screen">Screen Capture</option>';
+                
+                sources.forEach(source => {
+                    const option = document.createElement('option');
+                    option.value = source.id;
+                    option.textContent = `${source.name} (${source.type})`;
+                    select.appendChild(option);
+                });
+                
+                addLog(`Found ${sources.length} video sources`, 'success');
+            } catch (error) {
+                addLog('Failed to load video sources: ' + error.message, 'error');
+            }
+        }
+
+        // Start FPV capture
+        async function startFpvCapture() {
+            const sourceId = document.getElementById('videoSource').value;
+            
+            if (sourceId === 'screen') {
+                addLog('Using screen capture mode', 'info');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/fpv/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_id: sourceId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    fpvActive = true;
+                    document.getElementById('startFpvBtn').disabled = true;
+                    document.getElementById('stopFpvBtn').disabled = false;
+                    document.getElementById('fpvStatus').textContent = 'Active';
+                    document.getElementById('fpvStatus').className = 'status-indicator status-connected';
+                    addLog('FPV capture started', 'success');
+                } else {
+                    addLog('Failed to start FPV: ' + result.message, 'error');
+                }
+            } catch (error) {
+                addLog('Error starting FPV: ' + error.message, 'error');
+            }
+        }
+
+        // Stop FPV capture
+        async function stopFpvCapture() {
+            try {
+                const response = await fetch('/api/fpv/stop', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    fpvActive = false;
+                    document.getElementById('startFpvBtn').disabled = false;
+                    document.getElementById('stopFpvBtn').disabled = true;
+                    document.getElementById('fpvStatus').textContent = 'No Feed';
+                    document.getElementById('fpvStatus').className = 'status-indicator status-disconnected';
+                    addLog('FPV capture stopped', 'info');
+                } else {
+                    addLog('Failed to stop FPV: ' + result.message, 'error');
+                }
+            } catch (error) {
+                addLog('Error stopping FPV: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle detection
+        async function toggleDetection() {
+            try {
+                const response = await fetch('/api/fpv/toggle_detection', { method: 'POST' });
+                const result = await response.json();
+                
+                detectionEnabled = result.detection_enabled;
+                const btn = document.getElementById('toggleDetectionBtn');
+                btn.textContent = detectionEnabled ? 'Disable Detection' : 'Enable Detection';
+                btn.className = detectionEnabled ? 'btn-danger' : '';
+                
+                addLog(`Detection ${detectionEnabled ? 'enabled' : 'disabled'}`, 'info');
+            } catch (error) {
+                addLog('Error toggling detection: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle SAR mode
+        async function toggleSarMode() {
+            try {
+                const response = await fetch('/api/sar_mode/toggle', { method: 'POST' });
+                const result = await response.json();
+                
+                sarModeEnabled = result.sar_mode_enabled;
+                const btn = document.getElementById('toggleSarBtn');
+                btn.textContent = sarModeEnabled ? 'Disable SAR' : 'Enable SAR';
+                btn.className = sarModeEnabled ? 'btn-danger' : '';
+                
+                addLog(`SAR mode ${sarModeEnabled ? 'enabled' : 'disabled'}`, 'info');
+            } catch (error) {
+                addLog('Error toggling SAR mode: ' + error.message, 'error');
+            }
+        }
+
+        // Connect WebSocket for real-time updates
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                addLog('WebSocket connected', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateUI(data);
+                } catch (error) {
+                    console.error('Error parsing WebSocket message:', error);
+                }
+            };
+            
+            ws.onclose = function() {
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                addLog('WebSocket disconnected', 'error');
+                
+                // Attempt to reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                addLog('WebSocket error: ' + error.message, 'error');
+            };
+        }
+
+        // Update UI with real-time data
+        function updateUI(data) {
+            if (data.fps) {
+                document.getElementById('currentFps').textContent = data.fps.toFixed(1);
+                document.getElementById('avgFps').textContent = data.fps.toFixed(1);
+            }
+            
+            if (data.detections !== undefined) {
+                document.getElementById('detectionCount').textContent = data.detections;
+            }
+            
+            if (data.mode) {
+                document.getElementById('currentMode').textContent = data.mode;
+            }
+        }
+
+        // Update statistics periodically
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/fpv/stats');
+                const stats = await response.json();
+                
+                document.getElementById('totalDetections').textContent = stats.detections || 0;
+                document.getElementById('peopleDetected').textContent = stats.people_detected || 0;
+                
+                // Update uptime
+                const uptime = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(uptime / 60);
+                const seconds = uptime % 60;
+                document.getElementById('uptime').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // Start periodic stats updates
+        function startStatsUpdate() {
+            setInterval(updateStats, 1000);
+        }
+
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const logPanel = document.getElementById('logPanel');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (logPanel.children.length > 50) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+        }
+
+        // Handle video feed errors
+        document.getElementById('videoFeed').onerror = function() {
+            addLog('Video feed connection lost', 'error');
+        };
+
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

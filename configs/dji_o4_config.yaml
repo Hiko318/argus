@@ -12,7 +12,7 @@ global:
 mobile_sdk:
   # DJI Developer Account Settings
   app_key: "YOUR_DJI_APP_KEY_HERE"  # Register at developer.dji.com
-  app_name: "Foresight SAR"
+  app_name: "ARGUS SAR"
   
   # Video Stream Settings
   video:
@@ -110,7 +110,7 @@ network:
   rtmp:
     enable: false
     server: "rtmp://localhost:1935/live"
-    stream_key: "foresight_stream"
+    stream_key: "argus_stream"
     
   # UDP streaming
   udp:
@@ -159,6 +159,33 @@ error_handling:
     altitude_range: [0, 500]    # meters AGL
     velocity_range: [0, 30]     # m/s
 
+# Camera Intrinsics Configuration
+camera_intrinsics:
+  # Camera matrix (3x3)
+  camera_matrix:
+    - [1000.0, 0.0, 960.0]   # fx, 0, cx
+    - [0.0, 1000.0, 540.0]   # 0, fy, cy  
+    - [0.0, 0.0, 1.0]        # 0, 0, 1
+  
+  # Distortion coefficients [k1, k2, p1, p2, k3]
+  dist_coeffs: [-0.1, 0.05, 0.001, 0.002, -0.01]
+  
+  # Image dimensions
+  image_width: 1920
+  image_height: 1080
+  
+  # Camera model
+  camera_model: "pinhole"
+  distortion_model: "radial_tangential"
+  
+  # Field of view
+  fov_horizontal_deg: 84.0
+  fov_vertical_deg: 53.0
+  
+  # Physical camera properties
+  focal_length_mm: 24.0
+  sensor_size_mm: [13.2, 8.8]
+  
 # Development and Testing
 development:
   # Simulation mode

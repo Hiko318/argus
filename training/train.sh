@@ -301,7 +301,7 @@ main() {
     print_info "Starting SAR YOLOv8 Training Pipeline"
     print_info "Configuration: $CONFIG_FILE"
     print_info "Dataset: $DATASET_PATH"
-    print_info "Model: YOLOv8$MODEL_SIZE"
+    print_info "Model: YOLO11$MODEL_SIZE"
     print_info "Epochs: $EPOCHS"
     print_info "Batch Size: $BATCH_SIZE"
     print_info "Device: $DEVICE"
@@ -321,7 +321,7 @@ main() {
     if [[ -f "$CONFIG_FILE" ]]; then
         # Create temporary config with updated model
         TEMP_CONFIG="temp_config_$(date +%s).yaml"
-        sed "s/model: yolov8[nslmx].pt/model: yolov8${MODEL_SIZE}.pt/g" "$CONFIG_FILE" > "$TEMP_CONFIG"
+        sed "s/model: yolo11[nslmx].pt/model: yolo11${MODEL_SIZE}.pt/g" "$CONFIG_FILE" > "$TEMP_CONFIG"
         CONFIG_FILE="$TEMP_CONFIG"
     fi
     

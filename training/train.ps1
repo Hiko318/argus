@@ -343,7 +343,7 @@ function Main {
     Write-Info "Starting SAR YOLOv8 Training Pipeline"
     Write-Info "Configuration: $Config"
     Write-Info "Dataset: $Dataset"
-    Write-Info "Model: YOLOv8$Model"
+    Write-Info "Model: YOLO11$Model"
     Write-Info "Epochs: $Epochs"
     Write-Info "Batch Size: $BatchSize"
     Write-Info "Device: $Device"
@@ -368,7 +368,7 @@ function Main {
             
             # Read and modify config
             $configContent = Get-Content $Config
-            $configContent = $configContent -replace "model: yolov8[nslmx].pt", "model: yolov8$Model.pt"
+            $configContent = $configContent -replace "model: yolo11[nslmx].pt", "model: yolo11$Model.pt"
             $configContent | Set-Content $tempConfig
             
             $script:Config = $tempConfig

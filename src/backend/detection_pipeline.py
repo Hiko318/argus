@@ -71,7 +71,7 @@ class DetectionFrame:
 class DetectionPipeline:
     """Integrated human detection and tracking pipeline"""
     
-    def __init__(self, model_path: str = "yolov8n.pt", device: Optional[str] = None,
+    def __init__(self, model_path: str = "yolo11n.pt", device: Optional[str] = None,
                  confidence_threshold: float = 0.25, iou_threshold: float = 0.45,
                  tracker_max_disappeared: int = 30, tracker_max_distance: float = 100.0,
                  human_only: bool = True, aerial_optimized: bool = False, enable_tensorrt: bool = False):
@@ -472,7 +472,7 @@ def demo_pipeline():
     import argparse
     
     parser = argparse.ArgumentParser(description="Detection Pipeline Demo")
-    parser.add_argument("--model", default="yolov8n.pt", help="Path to YOLOv8 model")
+    parser.add_argument("--model", default="yolo11n.pt", help="Path to YOLO11 model")
     parser.add_argument("--device", help="Device to use (cuda/cpu)")
     parser.add_argument("--video", help="Path to test video")
     parser.add_argument("--output", help="Path for output video")

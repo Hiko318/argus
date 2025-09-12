@@ -1,23 +1,17 @@
 # SAR-specific YOLOv8 Dataset Configuration
 # Optimized for Search and Rescue operations with aerial and ground-based detection
 
-path: ../data/training  # dataset root dir
+path: "C:/Users/Admin/Desktop/argus/data/training"  # dataset root dir
 train: images/train  # train images (relative to 'path')
 val: images/val      # val images (relative to 'path')
 test: images/test    # test images (optional)
 
-# Classes for SAR operations
+# Classes optimized for Human, Dog, Cat detection
+nc: 3  # number of classes
 names:
-  0: person          # Primary target for SAR
-  1: vehicle         # Cars, trucks, motorcycles
-  2: aircraft        # Helicopters, planes, drones
-  3: boat           # Watercraft of various sizes
-  4: structure      # Buildings, tents, shelters
-  5: debris         # Rubble, wreckage
-  6: equipment      # SAR equipment, tools
-  7: animal         # Livestock, pets
-  8: signal         # Flares, mirrors, flags
-  9: clothing       # Visible clothing items
+  0: person          # Human detection
+  1: dog            # Dog detection
+  2: cat            # Cat detection
 
 # Dataset statistics (to be updated after preparation)
 download: |
@@ -32,22 +26,22 @@ download: |
   echo "Classes: person, vehicle, aircraft, boat, structure, debris, equipment, animal, signal, clothing"
   echo "Scenarios: aerial, ground, water, rubble, occlusion"
 
-# Training hyperparameters optimized for SAR
+# Training hyperparameters optimized for maximum confidence (100%)
 hyperparameters:
-  lr0: 0.01          # initial learning rate
-  lrf: 0.01          # final OneCycleLR learning rate (lr0 * lrf)
-  momentum: 0.937    # SGD momentum/Adam beta1
-  weight_decay: 0.0005  # optimizer weight decay
-  warmup_epochs: 3.0    # warmup epochs
-  warmup_momentum: 0.8  # warmup initial momentum
-  warmup_bias_lr: 0.1   # warmup initial bias lr
-  box: 0.05          # box loss gain
-  cls: 0.5           # cls loss gain
-  cls_pw: 1.0        # cls BCELoss positive_weight
-  obj: 1.0           # obj loss gain (scale with pixels)
-  obj_pw: 1.0        # obj BCELoss positive_weight
-  iou_t: 0.20        # IoU training threshold
-  anchor_t: 4.0      # anchor-multiple threshold
+  lr0: 0.001         # very low initial learning rate for precision
+  lrf: 0.0001        # extremely low final learning rate
+  momentum: 0.95     # higher momentum for stability
+  weight_decay: 0.001   # higher weight decay for generalization
+  warmup_epochs: 10.0   # longer warmup for stability
+  warmup_momentum: 0.9  # higher warmup momentum
+  warmup_bias_lr: 0.05  # lower warmup bias lr for precision
+  box: 0.1           # higher box loss for precise localization
+  cls: 1.0           # maximum cls loss for confident classification
+  cls_pw: 1.5        # higher positive weight for classification
+  obj: 1.5           # higher obj loss for confident detection
+  obj_pw: 1.5        # higher obj positive weight
+  iou_t: 0.30        # higher IoU threshold for stricter matching
+  anchor_t: 5.0      # higher anchor threshold for precision
   fl_gamma: 0.0      # focal loss gamma
   hsv_h: 0.015       # image HSV-Hue augmentation (fraction)
   hsv_s: 0.7         # image HSV-Saturation augmentation (fraction)

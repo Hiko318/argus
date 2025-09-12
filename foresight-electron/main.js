@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -8,14 +8,25 @@ const PackagerBridge = require('./packager-bridge');
 // Global references
 let mainWindow;
 let sarBackendProcess = null;
-let sarServiceUrl = 'http://localhost:8004';
+let backendServiceUrl = 'http://localhost:8004';
 let isConnected = false;
 let packagerBridge = null;
+let systemState = {
+  connected: false,
+  running: false,
+  videoConnected: false,
+  telemetryConnected: false,
+  detectionRunning: false,
+  geolocationActive: false,
+  currentMode: 'regular'
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -23,23 +34,18 @@ function createWindow() {
       webSecurity: false // Allow loading local resources
     },
     icon: path.join(__dirname, 'assets', 'icon.svg'),
-    title: 'Foresight SAR System'
+    title: 'Foresight SAR System',
+    frame: false, // Remove default frame for custom header
+    titleBarStyle: 'hidden',
+    resizable: true,
+    movable: true
   });
 
-  // Start SAR backend service
-  startSARBackend();
+  // Load the local SAR interface
+  mainWindow.loadFile('sar_interface.html');
   
-  // Wait for backend to start, then load the interface
-  setTimeout(() => {
-    mainWindow.loadURL(sarServiceUrl);
-  }, 3000);
-  
-  // Log when page fails to load
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Failed to load SAR interface:', errorDescription);
-    // Fallback to local HTML if backend is not available
-    mainWindow.loadFile('sar_interface.html');
-  });
+  // Initialize backend connection check
+  checkBackendConnection();
   
   // Open DevTools in development
   // mainWindow.webContents.openDevTools();
@@ -47,6 +53,49 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
     stopSARBackend();
+  });
+  
+  // Handle window controls
+  mainWindow.webContents.on('dom-ready', () => {
+    setupWindowControls();
+  });
+}
+
+// Backend connection check
+async function checkBackendConnection() {
+  try {
+    const response = await fetch(`${backendServiceUrl}/api/status`);
+    if (response.ok) {
+      isConnected = true;
+      console.log('✓ Backend service connected');
+      mainWindow.webContents.send('backend-status', { connected: true });
+    }
+  } catch (error) {
+    isConnected = false;
+    console.log('✗ Backend service not available:', error.message);
+    mainWindow.webContents.send('backend-status', { connected: false });
+  }
+}
+
+// Window controls setup
+function setupWindowControls() {
+  // Handle window minimize, maximize, close
+  ipcMain.handle('minimize-window', () => {
+    mainWindow.minimize();
+  });
+  
+  ipcMain.handle('maximize-window', () => {
+    if (mainWindow.isFullScreen()) {
+      mainWindow.setFullScreen(false);
+    } else {
+      mainWindow.setFullScreen(true);
+    }
+  });
+  
+  ipcMain.handle('close-window', () => {
+    // Properly close the app
+    stopSARBackend();
+    app.quit();
   });
 }
 
@@ -124,12 +173,63 @@ function stopSARBackend() {
 // Check if SAR backend is running
 async function checkSARBackend() {
   try {
-    const response = await fetch(`${sarServiceUrl}/api/status`);
+    const response = await fetch(`${backendServiceUrl}/api/status`);
     return response.ok;
   } catch (error) {
     return false;
   }
 }
+
+// IPC handlers for SAR operations
+ipcMain.handle('get-sar-status', async () => {
+  try {
+    const response = await fetch(`${backendServiceUrl}/api/status`);
+    return await response.json();
+  } catch (error) {
+    return { error: error.message };
+  }
+});
+
+// System state management
+ipcMain.handle('get-system-state', () => {
+  return systemState;
+});
+
+ipcMain.handle('update-system-state', (event, newState) => {
+  systemState = { ...systemState, ...newState };
+  mainWindow.webContents.send('system-state-updated', systemState);
+  return systemState;
+});
+
+// Backend API handlers
+ipcMain.handle('api-request', async (event, { endpoint, method = 'GET', data = null }) => {
+  try {
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    if (data && method !== 'GET') {
+      options.body = JSON.stringify(data);
+    }
+    
+    const response = await fetch(`${backendServiceUrl}${endpoint}`, options);
+    const result = await response.json();
+    
+    return {
+      success: response.ok,
+      data: result,
+      status: response.status
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
 
 // Restart SAR backend
 function restartSARBackend() {

@@ -1,0 +1,21 @@
+{
+  "test_summary": {
+    "total_cases": 20,
+    "successful_cases": 20,
+    "failed_cases": 0
+  },
+  "accuracy_metrics": {
+    "success_rate": 1.0,
+    "mean_error_m": 12.610914684831629,
+    "std_error_m": 5.55843567488855,
+    "max_error_m": 23.31061316793688,
+    "min_error_m": 3.1567549761185583,
+    "accuracy_1m": 0.0,
+    "accuracy_5m": 0.15,
+    "accuracy_10m": 0.35,
+    "accuracy_20m": 0.95
+  },
+  "test_cases": [],
+  "results": [],
+  "timestamp": "2025-09-08T09:53:39"
+}

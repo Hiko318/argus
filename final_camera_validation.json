@@ -1,0 +1,325 @@
+{
+  "timestamp": "2025-09-08T17:59:50.094996",
+  "config_files": {
+    "camera_calib.yaml": {
+      "status": "PASS",
+      "file_path": "configs\\camera_calib.yaml",
+      "config_data": {
+        "camera_matrix": [
+          [
+            1000.0,
+            0.0,
+            640.0
+          ],
+          [
+            0.0,
+            1000.0,
+            360.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "dist_coeffs": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "fov_h_deg": 78,
+        "fov_v_deg": 50,
+        "camera_model": "pinhole",
+        "distortion_model": "radial_tangential",
+        "image_width": 1280,
+        "image_height": 720,
+        "camera_name": "DJI_O4",
+        "lens_model": "DJI_O4_Standard",
+        "focal_length_mm": 24.0,
+        "sensor_size_mm": [
+          13.2,
+          8.8
+        ],
+        "reprojection_error": 0.5,
+        "calibration_date": "2025-09-08"
+      },
+      "checks": {
+        "camera_matrix": "PASS",
+        "focal_lengths": "PASS",
+        "distortion_coeffs": "PASS",
+        "fov": "PASS"
+      },
+      "intrinsics": {
+        "fx": 1000.0,
+        "fy": 1000.0,
+        "cx": 640.0,
+        "cy": 360.0
+      }
+    },
+    "dji_o4_config.yaml": {
+      "status": "FAIL",
+      "file_path": "configs\\dji_o4_config.yaml",
+      "config_data": {
+        "global": {
+          "log_level": "INFO",
+          "connection_timeout": 30,
+          "retry_attempts": 3,
+          "retry_delay": 5
+        },
+        "mobile_sdk": {
+          "app_key": "YOUR_DJI_APP_KEY_HERE",
+          "app_name": "ARGUS SAR",
+          "video": {
+            "resolution": "1920x1080",
+            "fps": 30,
+            "codec": "H264",
+            "bitrate": 8000
+          },
+          "telemetry": {
+            "rate": 10,
+            "enable_gps": true,
+            "enable_attitude": true,
+            "enable_velocity": true,
+            "enable_gimbal": true,
+            "enable_battery": true
+          },
+          "connection": {
+            "auto_connect": true,
+            "wifi_ssid": "DJI_O4_*",
+            "usb_debugging": false
+          }
+        },
+        "payload_sdk": {
+          "hardware": {
+            "uart_device": "/dev/ttyUSB0",
+            "baudrate": 921600,
+            "usb_device": "/dev/video0"
+          },
+          "video": {
+            "format": "H264",
+            "resolution": "1920x1080",
+            "fps": 30,
+            "gstreamer": {
+              "pipeline": "udpsrc port=5600 \n! application/x-rtp,encoding-name=H264,payload=96 \n! rtph264depay \n! h264parse \n! nvv4l2decoder \n! nvvidconv \n! video/x-raw,format=BGRx \n! videoconvert \n! video/x-raw,format=BGR \n! appsink\n",
+              "use_hardware_decode": true,
+              "gpu_memory_fraction": 0.3
+            }
+          },
+          "telemetry": {
+            "rate": 20,
+            "protocol": "UART",
+            "data_format": "DJI_PSDK"
+          },
+          "flight_controller": {
+            "enable_control": false,
+            "control_authority": "NONE"
+          }
+        },
+        "recording": {
+          "enable": true,
+          "output_dir": "data/recordings",
+          "video": {
+            "enable": true,
+            "format": "mp4",
+            "codec": "h264",
+            "quality": "high"
+          },
+          "telemetry": {
+            "enable": true,
+            "format": "json",
+            "compression": true
+          },
+          "file_management": {
+            "max_file_size": "1GB",
+            "max_duration": 3600,
+            "cleanup_old_files": true,
+            "retention_days": 30
+          }
+        },
+        "network": {
+          "rtmp": {
+            "enable": false,
+            "server": "rtmp://localhost:1935/live",
+            "stream_key": "argus_stream"
+          },
+          "udp": {
+            "enable": false,
+            "host": "localhost",
+            "video_port": 5600,
+            "telemetry_port": 5601
+          },
+          "webrtc": {
+            "enable": false,
+            "stun_servers": [
+              "stun:stun.l.google.com:19302"
+            ]
+          }
+        },
+        "qos": {
+          "frame_drop": {
+            "enable": true,
+            "max_queue_size": 10,
+            "priority": "latest"
+          },
+          "adaptive_bitrate": {
+            "enable": true,
+            "min_bitrate": 2000,
+            "max_bitrate": 15000,
+            "target_latency": 200
+          }
+        },
+        "error_handling": {
+          "auto_reconnect": true,
+          "reconnect_delay": 5,
+          "max_reconnect_attempts": 10,
+          "frame_loss": {
+            "detection_threshold": 5,
+            "recovery_action": "reconnect"
+          },
+          "telemetry_validation": {
+            "enable": true,
+            "gps_accuracy_threshold": 5.0,
+            "altitude_range": [
+              0,
+              500
+            ],
+            "velocity_range": [
+              0,
+              30
+            ]
+          }
+        },
+        "camera_intrinsics": {
+          "camera_matrix": [
+            [
+              1000.0,
+              0.0,
+              960.0
+            ],
+            [
+              0.0,
+              1000.0,
+              540.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "dist_coeffs": [
+            -0.1,
+            0.05,
+            0.001,
+            0.002,
+            -0.01
+          ],
+          "image_width": 1920,
+          "image_height": 1080,
+          "camera_model": "pinhole",
+          "distortion_model": "radial_tangential",
+          "fov_horizontal_deg": 84.0,
+          "fov_vertical_deg": 53.0,
+          "focal_length_mm": 24.0,
+          "sensor_size_mm": [
+            13.2,
+            8.8
+          ]
+        },
+        "development": {
+          "simulation": {
+            "enable": false,
+            "test_pattern": "aerial_view",
+            "synthetic_telemetry": true
+          },
+          "debug": {
+            "save_raw_frames": false,
+            "frame_analysis": false,
+            "telemetry_logging": false,
+            "performance_metrics": true
+          },
+          "test_data": {
+            "recorded_flight_path": "data/test_recordings/",
+            "use_recorded_data": false
+          }
+        },
+        "security": {
+          "encryption": {
+            "enable": false,
+            "algorithm": "AES-256",
+            "key_rotation_interval": 3600
+          },
+          "authentication": {
+            "enable": false,
+            "method": "certificate",
+            "certificate_path": "certs/dji_o4.pem"
+          },
+          "privacy": {
+            "anonymize_gps": false,
+            "blur_sensitive_areas": false,
+            "data_retention_policy": "operational"
+          }
+        },
+        "platform_overrides": {
+          "jetson_nano": {
+            "video": {
+              "fps": 15,
+              "resolution": "1280x720"
+            },
+            "gstreamer": {
+              "gpu_memory_fraction": 0.5
+            }
+          },
+          "jetson_xavier": {
+            "video": {
+              "fps": 60
+            },
+            "gstreamer": {
+              "gpu_memory_fraction": 0.2
+            }
+          },
+          "android": {
+            "video": {
+              "hardware_decode": true
+            },
+            "connection": {
+              "prefer_wifi": true,
+              "usb_fallback": true
+            }
+          }
+        }
+      },
+      "checks": {
+        "camera_matrix": "FAIL - Missing camera_matrix",
+        "distortion_coeffs": "WARN - Missing distortion coefficients"
+      }
+    },
+    "dji_config.json": {
+      "status": "FAIL",
+      "file_path": "configs\\dji_config.json",
+      "config_data": {
+        "tello": {
+          "enabled": true,
+          "ip": "192.168.10.1",
+          "port": 8889,
+          "video_port": 11111
+        },
+        "payload_sdk": {
+          "enabled": false,
+          "note": "Requires DJI Payload SDK installation"
+        }
+      },
+      "checks": {
+        "camera_matrix": "FAIL - Missing camera_matrix",
+        "distortion_coeffs": "WARN - Missing distortion coefficients"
+      }
+    }
+  },
+  "telemetry_validation": {
+    "status": "SKIP",
+    "message": "No telemetry file found for validation"
+  },
+  "overall_status": "FAIL"
+}

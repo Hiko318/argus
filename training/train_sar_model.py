@@ -54,7 +54,7 @@ class SARTrainer:
         """Load training configuration."""
         default_config = {
             'model': {
-                'base_model': 'yolov8n.pt',
+                'base_model': 'yolo11n.pt',
                 'input_size': 640,
                 'batch_size': 16,
                 'epochs': 100,
@@ -371,7 +371,7 @@ Examples:
     )
     
     parser.add_argument("--config", help="Path to training configuration YAML")
-    parser.add_argument("--base-model", default="yolov8n.pt", help="Base YOLO model")
+    parser.add_argument("--base-model", default="yolo11n.pt", help="Base YOLO model")
     parser.add_argument("--epochs", type=int, default=100, help="Number of training epochs")
     parser.add_argument("--batch-size", type=int, default=16, help="Batch size")
     parser.add_argument("--device", default="auto", help="Training device (auto, cpu, 0, 1, ...)")

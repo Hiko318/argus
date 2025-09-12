@@ -1,0 +1,35 @@
+{
+  "export": {
+    "success": true,
+    "output_path": "models/yolov8n.engine.simulation.json",
+    "model_path": "models/yolov8n.pt",
+    "precision": "fp16",
+    "input_size": 640,
+    "batch_size": 1,
+    "export_time": 0.22045159339904785,
+    "file_size_mb": 0.001,
+    "error": null,
+    "simulated": true
+  },
+  "benchmark": {
+    "engine_path": "models/yolov8n.engine.simulation.json",
+    "num_runs": 50,
+    "avg_inference_time_ms": 50.0,
+    "fps": 20.0,
+    "success": true,
+    "note": "Simulated benchmark results. Actual performance may vary.",
+    "simulated": true
+  },
+  "system_compatibility": {
+    "platform": "win32",
+    "tensorrt_available": false,
+    "ultralytics_available": true,
+    "torch_available": true,
+    "cuda_available": false,
+    "recommendations": [
+      "TensorRT is not natively supported on Windows. Consider using ONNX export or deploying on Linux/Jetson devices.",
+      "CUDA not available. TensorRT requires CUDA for GPU acceleration."
+    ]
+  },
+  "timestamp": 1757323881.5060897
+}

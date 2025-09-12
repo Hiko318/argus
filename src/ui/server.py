@@ -70,7 +70,7 @@ def video_processor():
     
     # Load YOLO model
     try:
-        MODEL_PATH = "yolov8n.pt"
+        MODEL_PATH = "yolo11n.pt"
         model = YOLO(MODEL_PATH)
         print(f"YOLO model loaded: {MODEL_PATH}")
     except Exception as e:

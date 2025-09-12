@@ -28,12 +28,16 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 # Import our pipeline components
-from src.backend.detection_pipeline import DetectionPipeline, create_pipeline
-from src.backend.geolocation_pipeline import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from geolocation.geolocation_pipeline import (
     GeolocationPipeline, FrameGeolocationResult, DetectionGeolocation,
     create_geolocation_pipeline
 )
-from src.backend.telemetry_service import TelemetryData
+from vision.detection_pipeline import DetectionPipeline, create_pipeline
+from geolocation.telemetry_service import TelemetryData
 
 # Configure logging
 logging.basicConfig(

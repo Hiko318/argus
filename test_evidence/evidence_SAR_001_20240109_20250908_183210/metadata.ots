@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-09-08T10:32:10.871187+00:00",
+  "file": "metadata.json",
+  "hash": "9f41a8c5a69a21ea1fa455233b6e34c34a54324a417ccd99c0454090d5006fc9",
+  "proof": "stub_timestamp_proof_data",
+  "note": "This is a stub implementation for development"
+}

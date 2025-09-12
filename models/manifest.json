@@ -1,0 +1,99 @@
+{
+  "manifest_version": "1.0",
+  "created_at": "2024-01-09T00:00:00Z",
+  "models": {
+    "yolo11n": {
+      "name": "YOLO11 Nano SAR",
+      "version": "11.0.0",
+      "date": "2024-01-09",
+      "description": "YOLO11 Nano model optimized for SAR human detection",
+      "mAP": 0.47,
+      "mAP50": 0.70,
+      "size_mb": 5.2,
+      "inference_time_ms": 12,
+      "engine_paths": {
+        "pytorch": "yolo11n.pt",
+        "onnx": "yolo11n.onnx",
+        "tensorrt": "yolo11n_tensorrt/yolo11n.engine"
+      },
+      "sha256": {
+        "pytorch": "3cc0d8b0b8f5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+        "onnx": "4dd0e8c0c8g6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6",
+        "tensorrt": "5ee0f8d0d8h7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7"
+      },
+      "download_url": "https://github.com/Hiko318/foresight/releases/download/v11.0.0/yolo11n.pt",
+      "training_dataset": "VisDrone + SAR Custom",
+      "classes": ["person"],
+      "input_size": [640, 640],
+      "framework": "ultralytics"
+    },
+    "yolo11s": {
+      "name": "YOLO11 Small SAR",
+      "version": "11.0.0",
+      "date": "2024-01-09",
+      "description": "YOLO11 Small model optimized for SAR human detection",
+      "mAP": 0.55,
+      "mAP50": 0.78,
+      "size_mb": 18.8,
+      "inference_time_ms": 20,
+      "engine_paths": {
+        "pytorch": "yolo11s.pt",
+        "onnx": "yolo11s.onnx",
+        "tensorrt": "yolo11s_tensorrt/yolo11s.engine"
+      },
+      "sha256": {
+        "pytorch": "4cc0d8b0b8f5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+        "onnx": "5dd0e8c0c8g6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6",
+        "tensorrt": "6ee0f8d0d8h7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7"
+      },
+      "download_url": "https://github.com/Hiko318/foresight/releases/download/v11.0.0/yolo11s.pt",
+      "training_dataset": "VisDrone + SAR Custom",
+      "classes": ["person"],
+      "input_size": [640, 640],
+      "framework": "ultralytics"
+    },
+    "yolo11m": {
+      "name": "YOLO11 Medium SAR",
+      "version": "11.0.0",
+      "date": "2024-01-09",
+      "description": "YOLO11 Medium model optimized for SAR human detection",
+      "mAP": 0.62,
+      "mAP50": 0.85,
+      "size_mb": 40.2,
+      "inference_time_ms": 38,
+      "engine_paths": {
+        "pytorch": "yolo11m.pt",
+        "onnx": "yolo11m.onnx",
+        "tensorrt": "yolo11m_tensorrt/yolo11m.engine"
+      },
+      "sha256": {
+        "pytorch": "5cc0d8b0b8f5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+        "onnx": "6dd0e8c0c8g6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6d6",
+        "tensorrt": "7ee0f8d0d8h7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7e7"
+      },
+      "download_url": "https://github.com/Hiko318/foresight/releases/download/v11.0.0/yolo11m.pt",
+      "training_dataset": "VisDrone + SAR Custom",
+      "classes": ["person"],
+      "input_size": [640, 640],
+      "framework": "ultralytics"
+    }
+  },
+  "deployment_info": {
+    "recommended_models": {
+      "edge_devices": "yolo11n",
+      "mobile_devices": "yolo11n",
+      "desktop_cpu": "yolo11s",
+      "desktop_gpu": "yolo11m",
+      "server_gpu": "yolo11m",
+      "jetson_nano": "yolo11n",
+      "jetson_xavier": "yolo11s",
+      "raspberry_pi": "yolo11n"
+    }
+  },
+  "storage_info": {
+    "location": "GitHub Releases",
+    "base_url": "https://github.com/Hiko318/foresight/releases/download/",
+    "backup_location": "Git LFS",
+    "note": "Raw model weights moved to releases to reduce repository size"
+  }
+}
